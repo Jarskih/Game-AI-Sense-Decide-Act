@@ -138,5 +138,10 @@ namespace FlatEarth
         {
             return IsValidPos((int)pos.x, (int)pos.y, (int)pos.z);
         }
+
+        public Vector3 GetWorldPosFromNode(Vector3 pos)
+        {
+            return new Vector3(pos.x*_nodeSizeX, pos.y*_nodeSizeY, pos.z*_nodeSizeZ);
+        }
     }
 }

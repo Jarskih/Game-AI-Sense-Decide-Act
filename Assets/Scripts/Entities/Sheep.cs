@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace FlatEarth
 {
@@ -9,16 +11,19 @@ namespace FlatEarth
         [SerializeField] private float _hunger = 0;
         [SerializeField] private float _maxHunger = 100;
         [SerializeField] private float _eatLimit = 30;
-        [SerializeField]  private int _id;
-        [SerializeField]  private State _state;
+        [SerializeField] private int _id;
+        [SerializeField] private State _state;
         [SerializeField] private Node _currentNode;
         private Grid _grid;
         [SerializeField] private bool _hasGrass;
         [SerializeField] private float _hungerSpeed = 2;
-        [SerializeField]private float _starveSpeed = 5;
-        [SerializeField]private float _recoverSpeed;
+        [SerializeField] private float _starveSpeed = 5;
+        [SerializeField] private float _recoverSpeed;
+        [SerializeField] private float _maxDistanceDelta = 1;
+        private Node _wanderTarget;
+        private Vector3 targetPos;
 
-         private enum State
+        private enum State
         {
             DEAD,
             EATING,
@@ -103,8 +108,28 @@ namespace FlatEarth
                     Eat();
                     break;
                 case State.WANDERING:
+                    Wander();
                     break;
             }
+        }
+
+        private void Wander()
+        {
+            if (_wanderTarget == null)
+            {
+                var neighboringNodes = _grid.GetNeighboringNodes(_currentNode);
+                _wanderTarget = neighboringNodes[Random.Range(0, neighboringNodes.Count)];
+            }
+
+            // new wonder target
+            if (Vector3.Distance(targetPos, transform.position) < 0.1f)
+            {
+                var neighboringNodes = _grid.GetNeighboringNodes(_currentNode);
+                _wanderTarget = neighboringNodes[Random.Range(0, neighboringNodes.Count)];
+            }
+            
+            targetPos = _grid.GetWorldPosFromNode(_wanderTarget.GetNodePos());
+            transform.position = Vector3.MoveTowards(transform.position, targetPos, 0.1f);
         }
 
         private void Eat()
