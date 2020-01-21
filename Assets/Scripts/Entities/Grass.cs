@@ -10,14 +10,16 @@ namespace FlatEarth
 {
     public class Grass : Entity
     {
-        [SerializeField] private float growSpeed = 10f;
-        [SerializeField] private float lifetimeAsMature = 10;
-        [SerializeField] private float fullHealth = 100;
+        [SerializeField] private float _growSpeed = 10f;
+        [SerializeField] private float _lifetimeAsMature = 30;
+        [SerializeField] private float _growInterval = 5;
+        [SerializeField] private float _fullHealth = 100;
         
         [SerializeField] private int _id;
         [SerializeField] private State _state;
-        private readonly EntityType type = EntityType.GRASS;
-        [SerializeField] private float lifeTimeCounter = 0;
+        private EntityType type = EntityType.GRASS;
+        [SerializeField] private float _lifeTimeCounter = 0;
+        [SerializeField] private float _growIntervalCounter = 0;
         [SerializeField] private float _health = 1;
 
         // Grid
@@ -37,6 +39,7 @@ namespace FlatEarth
             EventManager.StartListening("GrassEaten", Eaten);
             _grid = grid;
             _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
+            _currentNode.AddEntity(this);
         }
         
         public override EntityType GetEntityType()
@@ -97,23 +100,30 @@ namespace FlatEarth
                 case State.DEAD:
                     return;
                 case State.GROWING:
-                    _health += deltaTime * growSpeed;
-                    if (_health > fullHealth)
+                    _health += deltaTime * _growSpeed;
+                    if (_health > _fullHealth)
                     {
-                        Spread();
                         _state = State.MATURE;
                     }
                     break;
                 case State.MATURE:
                 {
-                    lifeTimeCounter += deltaTime;
-                    if (lifeTimeCounter > lifetimeAsMature)
+                    _lifeTimeCounter += deltaTime;
+                    if (_lifeTimeCounter > _lifetimeAsMature)
                     {
-                        _health -= deltaTime * growSpeed;
+                        _health -= deltaTime * _growSpeed;
                     
                         if (_health <= 0)
                         {
                             Die();
+                        }
+
+                        _growIntervalCounter += deltaTime;
+
+                        if (_growIntervalCounter > _growInterval)
+                        {
+                            _growInterval = 0;
+                            Spread();
                         }
                     }
                     break;
@@ -124,22 +134,35 @@ namespace FlatEarth
         private void Spread()
         {
             var nodes = _grid.GetNeighboringNodes(_currentNode);
-            var validNodes = nodes;
+            var validNodes = new List<Node>();
             foreach (var node in nodes)
             {
+                if (node.GetEntities().Count == 0)
+                {
+                    validNodes.Add(node);
+                    continue;
+                }
+                
                 foreach (var entity in node.GetEntities())
                 {
-                    if (entity.GetEntityType() == EntityType.GRASS)
+                    if (entity == null)
                     {
-                        validNodes.Remove(node);
+                        validNodes.Add(node);
+                        break;
+                    }
+
+                    if (entity.GetEntityType() != EntityType.GRASS)
+                    {
+                        validNodes.Add(node);
+                        break;
                     }
                 }
             }
 
             var nodeToSpread = validNodes[UnityEngine.Random.Range(0, validNodes.Count - 1)];
-            
             EventManager.EventMessage message = new EventManager.EventMessage(nodeToSpread, _id);
             EventManager.TriggerEvent("GrassSpreading", message);
+
         }
 
         private void Eaten(EventManager.EventMessage message)

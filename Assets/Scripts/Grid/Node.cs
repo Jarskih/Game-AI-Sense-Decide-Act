@@ -11,11 +11,11 @@ namespace FlatEarth
             _x = pX;
             _y = pY;
             _z = pZ;
-            nodeObject = go;
+            _nodeObject = go;
         }
         private readonly int _x, _y, _z;
         private List<Entity> _entities = new List<Entity>();
-        private GameObject nodeObject;
+        private GameObject _nodeObject;
 
         public Vector3Int GetNodePos()
         {
@@ -24,12 +24,23 @@ namespace FlatEarth
 
         public void AddEntity(Entity entity)
         {
-            _entities.Add(entity);
+            if (!_entities.Contains(entity))
+            {
+                _entities.Add(entity);   
+            }
         }
 
         public List<Entity> GetEntities()
         {
             return _entities; 
+        }
+
+        public void RemoveEntity(Entity entity)
+        {
+            if (_entities.Contains(entity))
+            {
+                _entities.Remove(entity);
+            }
         }
     }
 }

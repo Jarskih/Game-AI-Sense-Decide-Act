@@ -151,7 +151,8 @@ namespace FlatEarth
                 if (e.GetId() == message.id)
                 {
                     _entities.Remove(e);
-                    GameObject.Destroy(e);
+                    message.node.RemoveEntity(e);
+                    GameObject.Destroy(e.gameObject);
                     break;
                 }
             }
