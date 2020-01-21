@@ -1,7 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Xml.Linq;
-using UnityEditor.U2D;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class Main : MonoBehaviour

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ContentModelStore">
+    <e p="C:\Programming\AI-programming-assigment-1" t="IncludeRecursive">
+      <e p="AI-programming-assigment-1.sln" t="IncludeFlat" />
+      <e p="Assembly-CSharp.csproj" t="IncludeRecursive" />
+      <e p="Assets" t="Include">
+        <e p="Scripts" t="Include">
+          <e p="Entity.cs" t="Include" />
+          <e p="Grass.cs" t="Include" />
+          <e p="Grid.cs" t="Include" />
+          <e p="Interfaces" t="Include">
+            <e p="IAct.cs" t="Include" />
+            <e p="ISense.cs" t="Include" />
+            <e p="IThink.cs" t="Include" />
+          </e>
+          <e p="Main.cs" t="Include" />
+          <e p="Sheep.cs" t="Include" />
+          <e p="SimpleCameraController.cs" t="Include" />
+          <e p="Wolf.cs" t="Include" />
+        </e>
+      </e>
+      <e p="obj" t="ExcludeRecursive" />
+      <e p="Packages" t="ExcludeRecursive" />
+      <e p="Temp\bin" t="ExcludeRecursive" />
+    </e>
+    <e p="C:\Users\Jari\.Rider2019.2\system\extResources" t="IncludeRecursive" />
+    <e p="C:\Users\Jari\.Rider2019.2\system\resharper-host\local\Transient\ReSharperHost\v192\SolutionCaches\_AI-programming-assigment-1.2072560782.00" t="ExcludeRecursive" />
+  </component>
+</project>

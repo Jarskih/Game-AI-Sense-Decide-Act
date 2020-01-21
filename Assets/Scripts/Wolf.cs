@@ -1,24 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-namespace Entities
+﻿namespace Entities
 {
     public class Wolf : Entity
     {
         public EntityType type = EntityType.WOLF;
-
-        // Start is called before the first frame update
-        void Start()
-        {
-
-        }
-
-        // Update is called once per frame
-        void Update()
-        {
-
-        }
 
         public override void Sense()
         {
