@@ -12,19 +12,22 @@ namespace FlatEarth
         private readonly int _gridSizeY = 1;
         private readonly int _gridSizeZ = 50;
 
-        private readonly int _startingWolfs = 10;
-        private readonly int _startingSheeps = 20;
-        private readonly int _startingGrass = 30;
+        private readonly int _startingWolfs = 5;
+        private readonly int _startingSheeps = 50;
+        private readonly int _startingGrass = 200;
 
         [SerializeField] private Grid _grid;
         [SerializeField] private List<Entity> _entities = new List<Entity>();
+        [SerializeField] private List<Entity> _newEntities;
+        [SerializeField] private List<Entity> _removedEntities;
 
         // Used to organize scene
         private GameObject wolfContainer;
         private GameObject sheepContainer;
         private GameObject grassContainer;
-        
-        
+
+
+
         // Start is called before the first frame update
         void Start()
         {
@@ -57,6 +60,25 @@ namespace FlatEarth
             foreach (var entity in _entities)
             {
                 entity.Act(Time.deltaTime);
+            }
+
+            if (_newEntities.Count > 0)
+            {
+                foreach (Entity e in _newEntities)
+                {
+                    _entities.Add(e);
+                }
+                _newEntities.Clear();
+            }
+            
+            if (_removedEntities.Count > 0)
+            {
+                foreach (Entity e in _removedEntities)
+                {
+                    _entities.Remove(e);
+                    Destroy(e.gameObject);
+                }
+                _removedEntities.Clear();
             }
         }
         
@@ -123,13 +145,13 @@ namespace FlatEarth
         private void InitListeners()
         {
         EventManager.StartListening("GrassSpreading", GrowGrass);
-        EventManager.StartListening("GrassDied", RemoveGrass);
+        EventManager.StartListening("EntityDied", RemoveEntity);
         }
 
         private void GrowGrass(EventManager.EventMessage message)
         {
             GameObject e = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            var childIndex = grassContainer.transform.childCount + 1;
+            var childIndex = _entities.Count + 1;
             e.name = "Grass " + childIndex;
             e.AddComponent<Grass>();
 
@@ -139,20 +161,20 @@ namespace FlatEarth
             t.position = message.node.GetNodePos();
 
             e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Grass);
-            _entities.Add(e.GetComponent<Entity>());
             e.GetComponent<Grass>().Init(_grid);
+            
+            _newEntities.Add(e.GetComponent<Entity>());
         }
 
-        private void RemoveGrass(EventManager.EventMessage message)
+        private void RemoveEntity(EventManager.EventMessage message)
         {
             var temp = _entities;
             foreach (var e in temp)
             {
                 if (e.GetId() == message.id)
                 {
-                    _entities.Remove(e);
                     message.node.RemoveEntity(e);
-                    GameObject.Destroy(e.gameObject);
+                    _removedEntities.Add(e.GetComponent<Entity>()); ;
                     break;
                 }
             }
