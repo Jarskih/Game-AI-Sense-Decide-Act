@@ -6,18 +6,25 @@
       <e p="Assembly-CSharp.csproj" t="IncludeRecursive" />
       <e p="Assets" t="Include">
         <e p="Scripts" t="Include">
-          <e p="Entity.cs" t="Include" />
-          <e p="Grass.cs" t="Include" />
-          <e p="Grid.cs" t="Include" />
+          <e p="Entities" t="Include">
+            <e p="Entity.cs" t="Include" />
+            <e p="Grass.cs" t="Include" />
+            <e p="Sheep.cs" t="Include" />
+            <e p="Wolf.cs" t="Include" />
+          </e>
+          <e p="EventManager.cs" t="Include" />
+          <e p="Grid" t="Include">
+            <e p="Grid.cs" t="Include" />
+            <e p="Node.cs" t="Include" />
+          </e>
           <e p="Interfaces" t="Include">
             <e p="IAct.cs" t="Include" />
             <e p="ISense.cs" t="Include" />
             <e p="IThink.cs" t="Include" />
           </e>
           <e p="Main.cs" t="Include" />
-          <e p="Sheep.cs" t="Include" />
+          <e p="Materials.cs" t="Include" />
           <e p="SimpleCameraController.cs" t="Include" />
-          <e p="Wolf.cs" t="Include" />
         </e>
       </e>
       <e p="obj" t="ExcludeRecursive" />

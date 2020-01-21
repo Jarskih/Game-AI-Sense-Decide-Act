@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace UnityTemplateProjects
+namespace FlatEarth
 {
     public class SimpleCameraController : MonoBehaviour
     {
