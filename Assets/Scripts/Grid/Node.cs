@@ -1,9 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.Experimental.Rendering;
 using UnityEngine;
 
 namespace FlatEarth
 {
+    [System.Serializable]
     public class Node
     {
         public Node(int pX, int pY, int pZ, GameObject go)
@@ -13,13 +15,18 @@ namespace FlatEarth
             _z = pZ;
             _nodeObject = go;
         }
-        private readonly int _x, _y, _z;
-        private List<Entity> _entities = new List<Entity>();
-        private GameObject _nodeObject;
+        [SerializeField] private int _x, _y, _z;
+        [SerializeField] private List<Entity> _entities = new List<Entity>();
+        [SerializeField] private GameObject _nodeObject;
 
-        public Vector3Int GetNodePos()
+        public Vector3Int GetNodeGridPos()
         {
             return new Vector3Int(_x, _y, _z);
+        }
+
+        public Vector3 GetNodeWorldPos()
+        {
+            return _nodeObject.transform.position;
         }
 
         public void AddEntity(Entity entity)

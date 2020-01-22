@@ -12,7 +12,7 @@ namespace FlatEarth
         
         [SerializeField] private int _id;
         [SerializeField] private State _state;
-        private EntityType type = EntityType.GRASS;
+        [SerializeField] private EntityType type = EntityType.GRASS;
         [SerializeField] private float _lifeTimeCounter = 0;
         [SerializeField] private float _spreadIntervalCounter = 0;
         [SerializeField] private float _health = 1;
@@ -20,7 +20,7 @@ namespace FlatEarth
 
         // Grid
         private Grid _grid;
-        private Node _currentNode;
+        [SerializeField] private Node _currentNode;
         
         private enum State
         {
@@ -51,7 +51,7 @@ namespace FlatEarth
 
         //Sense: On each sense tick the grass should find out if it is being eaten or trampled wolves or sheep.
 
-        public override void Sense(float deltaTime)
+        public override void Sense()
         {
             if (_state == State.DEAD)
             {
@@ -80,14 +80,14 @@ namespace FlatEarth
         }
 
         // Decide: On each decide tick the grass should choose if it will try to spread to an adjacent square or grow, depending on its internal state and sensing information.
-        public override void Think(float deltaTime)
+        public override void Think()
         {
             if (_state == State.DEAD) { return; }
             if (_state == State.TRAMPLED) { return; }
             
             if (_mature)
             {
-                _spreadIntervalCounter += deltaTime;
+                _spreadIntervalCounter += Time.deltaTime;
 
                 if (_spreadIntervalCounter > _spreadInterval)
                 {
@@ -110,16 +110,16 @@ namespace FlatEarth
          Grow to a maximum health value, if not being trampled or eaten up, after it reaches its maximum value it stays mature for a while then starts to wither and die, when reaching zero health it is replaced with dirt.
          Try to spread to another square if mature and not being eaten.
          */
-        public override void Act(float deltaTime)
+        public override void Act()
         {
             switch (_state)
             {
                 case State.DEAD:
                 case State.TRAMPLED:
-                    return;
+                    break;
                 case State.GROWING:
                 {
-                    Grow(deltaTime);
+                    Grow();
                     break;
                 }
                 case State.SPREADING:
@@ -128,15 +128,15 @@ namespace FlatEarth
             }
         }
 
-        private void Grow(float deltaTime)
+        private void Grow()
         {
             if (_mature)
             {
                 // Age
-                _lifeTimeCounter += deltaTime;
+                _lifeTimeCounter += Time.deltaTime;
                 if (_lifeTimeCounter > _lifetimeAsMature)
                 {
-                    _health -= deltaTime * _growSpeed;
+                    _health -= Time.deltaTime * _growSpeed;
                 }
 
                 if (_health < 0)
@@ -146,7 +146,7 @@ namespace FlatEarth
             }
             else
             {
-                _health += deltaTime * _growSpeed;
+                _health += Time.deltaTime * _growSpeed;
                 if (_health > _fullHealth)
                 {
                     _mature = true;

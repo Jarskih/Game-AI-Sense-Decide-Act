@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.Tracing;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Events;
 
 namespace FlatEarth
 {
@@ -11,173 +8,50 @@ namespace FlatEarth
         private readonly int _gridSizeX = 50;
         private readonly int _gridSizeY = 1;
         private readonly int _gridSizeZ = 50;
-
-        private readonly int _startingWolfs = 5;
-        private readonly int _startingSheeps = 50;
-        private readonly int _startingGrass = 200;
+        
+        private readonly int _startingWolfs = 10;
+        private readonly int _startingSheep = 50;
+        private readonly int _startingGrass = 100;
 
         [SerializeField] private Grid _grid;
-        [SerializeField] private List<Entity> _entities = new List<Entity>();
-        [SerializeField] private List<Entity> _newEntities;
-        [SerializeField] private List<Entity> _removedEntities;
-
-        // Used to organize scene
-        private GameObject wolfContainer;
-        private GameObject sheepContainer;
-        private GameObject grassContainer;
-
-
-
+        private EntityManager _entityManager;
+        
         // Start is called before the first frame update
         void Start()
         {
-            GameObject eventManager = new GameObject("EventManager");
-            eventManager.AddComponent<EventManager>();
-
+            gameObject.AddComponent<EventManager>();
+            
+            // Create grid
             _grid = new Grid();
             if (!_grid.Init(_gridSizeX, _gridSizeY, _gridSizeZ))
             {
                 Debug.LogError("Error creating grid");
             }
-
-            InitEntities();
-            InitListeners();
+            
+            // Create entities
+            _entityManager = gameObject.AddComponent<EntityManager>();
+            _entityManager.Init(_grid, _startingWolfs, _startingSheep, _startingGrass);
         }
 
         // Update is called once per frame
         void Update()
         {
-            foreach (var entity in _entities)
+            foreach (var entity in _entityManager.entities)
             {
-                entity.Sense(Time.deltaTime);
+                entity.Sense();
             }
 
-            foreach (var entity in _entities)
+            foreach (var entity in _entityManager.entities)
             {
-                entity.Think(Time.deltaTime);
+                entity.Think();
             }
 
-            foreach (var entity in _entities)
+            foreach (var entity in _entityManager.entities)
             {
-                entity.Act(Time.deltaTime);
+                entity.Act();
             }
 
-            if (_newEntities.Count > 0)
-            {
-                foreach (Entity e in _newEntities)
-                {
-                    _entities.Add(e);
-                }
-                _newEntities.Clear();
-            }
-            
-            if (_removedEntities.Count > 0)
-            {
-                foreach (Entity e in _removedEntities)
-                {
-                    _entities.Remove(e);
-                    Destroy(e.gameObject);
-                }
-                _removedEntities.Clear();
-            }
-        }
-        
-        public static void GetFreeNode()
-        {
-            
-        }
-
-        private void InitEntities()
-        {
-            wolfContainer = new GameObject("WolfContainer");
-            for (int i = 0; i < _startingWolfs; i++)
-            {
-                GameObject e = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                e.name = "Wolf " + i;
-                e.AddComponent<Wolf>();
-
-                var t = e.transform;
-                t.SetParent(wolfContainer.transform);
-                t.localScale = new Vector3(0.5f, 0.5f, 0.5f);
-                t.position = _grid.GetRandomNodePos();
-
-                e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Wolf);
-                _entities.Add(e.GetComponent<Entity>());
-                e.GetComponent<Wolf>().Init(_grid);
-            }
-
-            sheepContainer = new GameObject("SheepContainer");
-            for (int i = 0; i < _startingSheeps; i++)
-            {
-                GameObject e = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                e.name = "Sheep " + i;
-                e.AddComponent<Sheep>();
-
-                var t = e.transform;
-                t.SetParent(sheepContainer.transform);
-                t.localScale = new Vector3(0.5f, 0.5f, 0.5f);
-                t.position = _grid.GetRandomNodePos();
-
-                e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Sheep);
-                _entities.Add(e.GetComponent<Entity>());
-                e.GetComponent<Sheep>().Init(_grid);
-            }
-
-            grassContainer = new GameObject("GrassContainer");
-            for (int i = 0; i < _startingGrass; i++)
-            {
-                GameObject e = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                e.name = "Grass " + i;
-                e.AddComponent<Grass>();
-
-                var t = e.transform;
-                t.SetParent(grassContainer.transform);
-                t.localScale = new Vector3(0.95f, 0.1f, 0.95f);
-                t.position = _grid.GetRandomNodePos();
-
-
-                e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Grass);
-                _entities.Add(e.GetComponent<Entity>());
-                e.GetComponent<Grass>().Init(_grid);
-            }
-        }
-        
-        private void InitListeners()
-        {
-        EventManager.StartListening("GrassSpreading", GrowGrass);
-        EventManager.StartListening("EntityDied", RemoveEntity);
-        }
-
-        private void GrowGrass(EventManager.EventMessage message)
-        {
-            GameObject e = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            var childIndex = _entities.Count + 1;
-            e.name = "Grass " + childIndex;
-            e.AddComponent<Grass>();
-
-            var t = e.transform;
-            t.SetParent(grassContainer.transform);
-            t.localScale = new Vector3(0.95f, 0.1f, 0.95f);
-            t.position = message.node.GetNodePos();
-
-            e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Grass);
-            e.GetComponent<Grass>().Init(_grid);
-            
-            _newEntities.Add(e.GetComponent<Entity>());
-        }
-
-        private void RemoveEntity(EventManager.EventMessage message)
-        {
-            var temp = _entities;
-            foreach (var e in temp)
-            {
-                if (e.GetId() == message.id)
-                {
-                    message.node.RemoveEntity(e);
-                    _removedEntities.Add(e.GetComponent<Entity>()); ;
-                    break;
-                }
-            }
+            _entityManager.UpdateEntities();
         }
     }
 }

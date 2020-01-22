@@ -1,36 +1,54 @@
-﻿using System;
+﻿using System.Numerics;
+using TMPro.EditorUtilities;
 using UnityEngine;
-using Random = UnityEngine.Random;
+using Quaternion = UnityEngine.Quaternion;
+using Vector3 = UnityEngine.Vector3;
 
 namespace FlatEarth
 {
     public class Sheep : Entity
     {
-        private readonly EntityType type = EntityType.SHEEP;
-        [SerializeField] private float _health = 100;
-        [SerializeField] private float _hunger = 0;
-        [SerializeField] private float _maxHunger = 100;
-        [SerializeField] private float _eatLimit = 30;
-        [SerializeField] private int _id;
-        [SerializeField] private State _state;
-        [SerializeField] private Node _currentNode;
-        private Grid _grid;
-        [SerializeField] private bool _hasGrass;
-        [SerializeField] private float _hungerSpeed = 2;
-        [SerializeField] private float _starveSpeed = 5;
-        [SerializeField] private float _recoverSpeed;
-        [SerializeField] private float _maxDistanceDelta = 1;
-        private Node _wanderTarget;
-        private Vector3 targetPos;
-
         private enum State
         {
             DEAD,
-            EATING,
+            LOOKING_FOR_FOOD,
             FLEEING,
             WANDERING,
             BREEDING,
         }
+        
+        private readonly EntityType type = EntityType.SHEEP;
+        private int _id;
+        private Grid _grid;
+        [SerializeField] private State _state;
+        [SerializeField] private Node _currentNode;
+        [SerializeField] private Node _oldNode;
+        [SerializeField] private int _sensingRadius = 3;
+        private readonly bool[] _urges;
+        
+        // Reproduction
+        [SerializeField] private double _maxHealth = 100;
+        [SerializeField] private float _health = 50;
+
+        // Hunger
+
+        [SerializeField] private float _hungerSpeed = 2;
+        [SerializeField] private float _starveSpeed = 5;
+        [SerializeField] private float _recoverSpeed;
+        
+        // Wandering
+        private readonly int[] _wanderAngles = {-15, -10, 5, 0, 0, 5, 10, 15};
+        [SerializeField] private float _maxHunger = 100;
+        [SerializeField] private float _hungerLimit = 30;
+        [SerializeField] private float _hunger = 0;
+        [SerializeField] private Vector3 _targetPos;
+        private float _walkSpeed = 0.01f;
+ 
+        // urges
+        private bool _isInDanger;
+        private bool _isHungry;
+        private bool _isHealthy;
+        [SerializeField] private Vector3 _foodLocation;
 
         public void Init(Grid grid)
         {
@@ -39,6 +57,7 @@ namespace FlatEarth
             _grid = grid;
             _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
             _currentNode.AddEntity(this);
+            _oldNode = _currentNode;
         }
 
         public override EntityType GetEntityType()
@@ -50,10 +69,159 @@ namespace FlatEarth
             return _id;
         }
 
-        public override void Sense(float deltaTime)
+        public override void Sense()
         {
-            _hasGrass = false;
+            // Increment counters
+            _hunger += Time.deltaTime * _hungerSpeed;
+         
+            // Is hungry?
+            _isHungry = _hunger > _hungerLimit;
+            
+            // Wants to reproduce?
+            _isHealthy = _health >= _maxHealth;
+            
+            // If starving lose health otherwise get stronger
+            if (_hunger > _maxHunger)
+            {
+                _health -= Time.deltaTime * _starveSpeed;
+            }
+            else
+            {
+                _health += Time.deltaTime * _recoverSpeed;
+            }
+
+            if (EntityManager.FindWolvesAroundNode(_currentNode, _sensingRadius).Count > 0)
+            {
+                _isInDanger = true;
+            }
+            else
+            {
+                _isInDanger = false;
+            }
+            
+            // Starved to death
+            if (_health < 0)
+            {
+                Die();
+            }
+
+            _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
+            
+            if (_currentNode != null && _currentNode != _oldNode)
+            {
+                _currentNode.AddEntity(this);
+                _oldNode.RemoveEntity(this);
+                _oldNode = _currentNode;
+            }
+
+            //TODO find wolves
+        }
+
+        public override void Think()
+        {
+            // Default to wandering
+            _state = State.WANDERING;
+
+            // Priorities 
+            // 1. Run from danger
+            if(_isInDanger)
+            {
+                // TODO find flee direction
+                _state = State.FLEEING;
+                return;
+            }
+            // 2. Look for food
+            if (_isHungry)
+            {
+                // TODO find where closest food is
+                if (_foodLocation == Vector3.zero)
+                {
+                    _foodLocation = EntityManager.GetClosestGrassPos(_currentNode, _sensingRadius);
+                }
+                _state = State.LOOKING_FOR_FOOD;
+                return;
+            }
+            // 3. Reproduce
+            if (_isHealthy)
+            {
+                // TODO find where closest food is
+                _state = State.BREEDING;
+                return;
+            }
+            // 4. Wander
+            FindWanderTarget();
+        }
+        
+        public override void Act()
+        {
+            switch (_state) 
+            {
+                case State.DEAD:
+                    break;
+                case State.LOOKING_FOR_FOOD:
+                    Eat();
+                    break;
+                case State.WANDERING:
+                    Wander();
+                    break;
+                case State.FLEEING:
+                    Flee();
+                    break;
+            }
+        }
+
+        private void Flee()
+        {
+          float maxTurningDelta = 10;
+          var wolves = EntityManager.FindWolvesAroundNode(_currentNode, _sensingRadius);
+          var direction = Vector3.zero;
+
+          foreach (var wolf in wolves)
+          {
+              direction += transform.position-wolf.transform.position;
+          }
+
+          var lookAt = Quaternion.LookRotation(direction.normalized);
+          Quaternion rotateDir = Quaternion.Inverse(lookAt);
+          
+          transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
+          _targetPos = transform.position + transform.forward * 3;
+          transform.position = Vector3.MoveTowards(transform.position, _targetPos, _walkSpeed);
+        }
+
+        private void FindWanderTarget()
+        {
+            int angle = 0;
+            float maxTurningDelta = 1; // in degrees
+            bool isOutsideGrid = _grid.IsOutsideGrid(transform.position + transform.forward*1);
+                if (isOutsideGrid)
+                { 
+                    // We hit the end of the grid. Turn around
+                    angle = 180;
+                    maxTurningDelta = 180;
+                }
+                else
+                {
+                    // Randomly turn left or right or continue straight
+                    angle = _wanderAngles[Random.Range(0, _wanderAngles.Length)];
+                    maxTurningDelta = 1;
+                }
+
+                Quaternion rotateDir = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y + angle, transform.rotation.eulerAngles.z);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, rotateDir, maxTurningDelta);
+                _targetPos = transform.position + transform.forward * 3;
+        }
+
+        private void Wander()
+        {
+            transform.position = Vector3.MoveTowards(transform.position, _targetPos, _walkSpeed);
+        }
+
+        private void Eat()
+        {
             // Find grass
+            bool hasGrass = false;
+            int id = 0;
             var entities = _grid.GetEntitiesOnNode(_currentNode);
             if (entities.Count > 0)
             {
@@ -61,82 +229,26 @@ namespace FlatEarth
                 {
                     if (e.GetEntityType() == EntityType.GRASS)
                     {
-                        _hasGrass = true;
+                        hasGrass = true;
+                        id = e.GetId();
                     }
                 }
             }
 
-            //TODO find wolves
-        }
-
-        public override void Think(float deltaTime)
-        {
-            // Default to wandering
-            _state = State.WANDERING;
-            
-            _hunger += deltaTime * _hungerSpeed;
-            if (_hunger > _maxHunger)
+            if (hasGrass)
             {
-                _health -= deltaTime * _starveSpeed;
+                _foodLocation = Vector3.zero;
+                _hunger = 0;
+                EventManager.EventMessage message = new EventManager.EventMessage(_currentNode, id);
+                EventManager.TriggerEvent("RemoveDied", message);  
             }
             else
             {
-                _health += deltaTime * _recoverSpeed;
+                float maxTurningDelta = 15;
+                Quaternion lookAt = Quaternion.LookRotation(_foodLocation - transform.position);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
+                transform.position = Vector3.MoveTowards(transform.position, _foodLocation, _walkSpeed);
             }
-            
-            if (_hasGrass)
-            {
-                if (_hunger > _eatLimit)
-                {
-                    _state = State.EATING;
-                }
-            }
-
-            if (_health < 0)
-            {
-                Die();
-            }
-        }
-
-        public override void Act(float deltaTime)
-        {
-            switch (_state) 
-            {
-                case State.DEAD:
-                    break;
-                case State.EATING:
-                    Eat();
-                    break;
-                case State.WANDERING:
-                    Wander();
-                    break;
-            }
-        }
-
-        private void Wander()
-        {
-            if (_wanderTarget == null)
-            {
-                var neighboringNodes = _grid.GetNeighboringNodes(_currentNode);
-                _wanderTarget = neighboringNodes[Random.Range(0, neighboringNodes.Count)];
-            }
-
-            // new wonder target
-            if (Vector3.Distance(targetPos, transform.position) < 0.1f)
-            {
-                var neighboringNodes = _grid.GetNeighboringNodes(_currentNode);
-                _wanderTarget = neighboringNodes[Random.Range(0, neighboringNodes.Count)];
-            }
-            
-            targetPos = _grid.GetWorldPosFromNode(_wanderTarget.GetNodePos());
-            transform.position = Vector3.MoveTowards(transform.position, targetPos, 0.1f);
-        }
-
-        private void Eat()
-        {
-            _hunger = 0;
-            EventManager.EventMessage message = new EventManager.EventMessage(_currentNode, _id);
-            EventManager.TriggerEvent("GrassEaten", message);
         }
 
         private void Eaten(EventManager.EventMessage message)

@@ -12,6 +12,7 @@
             <e p="Sheep.cs" t="Include" />
             <e p="Wolf.cs" t="Include" />
           </e>
+          <e p="EntityManager.cs" t="Include" />
           <e p="EventManager.cs" t="Include" />
           <e p="Grid" t="Include">
             <e p="Grid.cs" t="Include" />

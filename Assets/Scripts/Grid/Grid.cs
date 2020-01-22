@@ -65,12 +65,19 @@ namespace FlatEarth
             {
                 return null;
             }
+
+            var x = Mathf.FloorToInt(pos.x);
+            var z = Mathf.FloorToInt(pos.z);
             
-            return _nodes[
-                Mathf.CeilToInt(pos.x) + _nodeSizeX/2,
-                0,
-                Mathf.CeilToInt(pos.z) + _nodeSizeZ/2
-            ];
+            if(IsValidPos(x,0,z))
+            {
+                return _nodes[x, 0, z];
+            }
+            else
+            {
+                return null;
+                Debug.LogError("Not valid world pos");
+            }
         }
 
         public Vector3Int GetRandomNodePos()
@@ -89,12 +96,12 @@ namespace FlatEarth
         public List<Node> GetNeighboringNodes(Node currentNode)
         {
             List<Node> neighbors = new List<Node>();
-            int y = currentNode.GetNodePos().y;
-            for (int x = currentNode.GetNodePos().x - 1; x <= currentNode.GetNodePos().x + 1; x++)
+            int y = currentNode.GetNodeGridPos().y;
+            for (int x = currentNode.GetNodeGridPos().x - 1; x <= currentNode.GetNodeGridPos().x + 1; x++)
             {
-                for (int z = currentNode.GetNodePos().z - 1; z <= currentNode.GetNodePos().z + 1; z++)
+                for (int z = currentNode.GetNodeGridPos().z - 1; z <= currentNode.GetNodeGridPos().z + 1; z++)
                 {
-                    if (x == currentNode.GetNodePos().x && z == currentNode.GetNodePos().z)
+                    if (x == currentNode.GetNodeGridPos().x && z == currentNode.GetNodeGridPos().z)
                     {
                         continue;
                     }
@@ -107,6 +114,26 @@ namespace FlatEarth
             }
             return neighbors;
         }
+        public Vector3 GetWorldPosFromNode(Vector3 pos)
+        {
+            return new Vector3(pos.x*_nodeSizeX, pos.y*_nodeSizeY, pos.z*_nodeSizeZ);
+        }
+        
+        public bool IsOutsideGrid(Vector3 pos)
+        {
+            if (pos.x < 0 || pos.y < 0 || pos.z < 0)
+            {
+                return true;
+            }
+
+            if (pos.x > _gridSizeX * _nodeSizeX - 1 || pos.y > _gridSizeY * _nodeSizeY-1 || pos.z > _gridSizeZ * _nodeSizeZ-1)
+            {
+                return true;
+            }
+
+            return false;
+        }
+        
         private GameObject InitGridObject(int pX, int pY, int pZ, Transform parent)
         {
             Vector3 pos = new Vector3(pX * _nodeSizeX, pY * _nodeSizeY, pZ * _nodeSizeZ);
@@ -137,11 +164,6 @@ namespace FlatEarth
         private bool IsValidPos(Vector3 pos)
         {
             return IsValidPos((int)pos.x, (int)pos.y, (int)pos.z);
-        }
-
-        public Vector3 GetWorldPosFromNode(Vector3 pos)
-        {
-            return new Vector3(pos.x*_nodeSizeX, pos.y*_nodeSizeY, pos.z*_nodeSizeZ);
         }
     }
 }
