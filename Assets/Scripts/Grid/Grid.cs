@@ -90,6 +90,12 @@ namespace FlatEarth
         
         public List<Entity> GetEntitiesOnNode(Node n)
         {
+            if (n == null)
+            {
+                Debug.LogError("Invalid Node");
+                var e = new List<Entity>();
+                return e;
+            }
             return n.GetEntities();
         }
         

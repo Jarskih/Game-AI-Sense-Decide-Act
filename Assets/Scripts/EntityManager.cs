@@ -1,8 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using UnityEditor.CrashReporting;
+using System.Data;
 using UnityEngine;
-using UnityEngine.Experimental.PlayerLoop;
 
 namespace FlatEarth
 {
@@ -15,6 +14,10 @@ namespace FlatEarth
         [SerializeField] private static List<Entity> _entities = new List<Entity>();
         [SerializeField] private static List<Entity> _newEntities = new List<Entity>();
         [SerializeField] private static List<Entity> _removedEntities = new List<Entity>();
+        
+        [SerializeField] private static List<Entity> _grassList = new List<Entity>();
+        [SerializeField] private static List<Entity> _sheepList = new List<Entity>();
+        [SerializeField] private static List<Entity> _wolfList = new List<Entity>();
 
     public List<Entity> entities => _entities;
 
@@ -48,7 +51,7 @@ namespace FlatEarth
         {
             foreach (Entity e in _newEntities)
             {
-                _entities.Add(e);
+                AddEntity(e);
             }
             _newEntities.Clear();
         }
@@ -57,8 +60,7 @@ namespace FlatEarth
         {
             foreach (Entity e in _removedEntities)
             {
-                _entities.Remove(e);
-                Destroy(e.gameObject);
+                RemoveEntity(e);
             }
             _removedEntities.Clear();
         }
@@ -78,7 +80,7 @@ namespace FlatEarth
                 e.transform.position = _grid.GetRandomNodePos();
 
                 e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Wolf);
-                _entities.Add(e.GetComponent<Entity>());
+                AddEntity(e.GetComponent<Entity>());
                 e.GetComponent<Wolf>().Init(_grid);
             }
 
@@ -94,7 +96,7 @@ namespace FlatEarth
                 e.transform.position = _grid.GetRandomNodePos();
 
                 e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Sheep);
-                _entities.Add(e.GetComponent<Entity>());
+                AddEntity(e.GetComponent<Entity>());
                 e.GetComponent<Sheep>().Init(_grid);
             }
 
@@ -106,18 +108,29 @@ namespace FlatEarth
                 e.AddComponent<Grass>();
                 
                 e.transform.SetParent(grassContainer.transform);
-                e.transform.localScale = new Vector3(0.95f, 0.1f, 0.95f);
+                e.transform.localScale = new Vector3(0.0f, 0.1f, 0.0f);
                 e.transform.position = _grid.GetRandomNodePos();
 
 
                 e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Grass);
-                _entities.Add(e.GetComponent<Entity>());
+                AddEntity(e.GetComponent<Entity>());
                 e.GetComponent<Grass>().Init(_grid);
             }
         }
 
     private void GrowGrass(EventManager.EventMessage message)
     {
+        var entities = message.node.GetEntities();
+
+        foreach (var entity in entities)
+        {
+            if (entity.GetEntityType() == Entity.EntityType.GRASS)
+            {
+                // Already has grass
+                return;
+            }
+        }
+        
         GameObject e = GameObject.CreatePrimitive(PrimitiveType.Cube);
         var childIndex = _entities.Count + 1;
         e.name = "Grass " + childIndex;
@@ -125,7 +138,7 @@ namespace FlatEarth
 
         var t = e.transform;
         t.SetParent(grassContainer.transform);
-        t.localScale = new Vector3(0.95f, 0.1f, 0.95f);
+        t.localScale = new Vector3(0.0f, 0.1f, 0.0f);
         t.position = message.node.GetNodeGridPos();
 
         e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Grass);
@@ -141,80 +154,93 @@ namespace FlatEarth
         {
             if (e.GetId() == message.id)
             {
-                message.node.RemoveEntity(e);
                 _removedEntities.Add(e.GetComponent<Entity>()); ;
                 break;
             }
         }
     }
-    
-    public static List<Entity> FindWolvesAroundNode(Node node, int sensingRadius)
+
+    private void RemoveEntity(Entity e)
     {
-        List<Entity> wolves = new List<Entity>();
-        if (node == null) return wolves;
-        foreach (var e in _entities)
+        _entities.Remove(e);
+        if (e.GetEntityType() == Entity.EntityType.GRASS)
         {
-            if (e.GetEntityType() == Entity.EntityType.WOLF)
+            _grassList.Remove(e);
+        }
+        else if(e.GetEntityType() == Entity.EntityType.SHEEP)
+        {
+            _sheepList.Remove(e);
+        }
+        else if(e.GetEntityType() == Entity.EntityType.WOLF)
+        {
+            _wolfList.Remove(e);
+        }
+        Destroy(e.gameObject);
+    }
+
+    private void AddEntity(Entity e)
+    {
+        _entities.Add(e);
+        if (e.GetEntityType() == Entity.EntityType.GRASS)
+        {
+            _grassList.Add(e);
+        }
+        else if(e.GetEntityType() == Entity.EntityType.SHEEP)
+        {
+            _sheepList.Add(e);
+        }
+        else if(e.GetEntityType() == Entity.EntityType.WOLF)
+        {
+            _wolfList.Add(e);
+        }
+    }
+    
+    public static Dictionary<Entity, float> FindWolvesAroundNode(Node node, float sensingRadius)
+    {
+        Dictionary<Entity, float> wolves = new Dictionary<Entity, float>();
+        if (node == null) return wolves;
+        foreach (var e in _wolfList)
+        {
+            float dist = Vector3.Distance(e.transform.position, node.GetNodeWorldPos());
+            if (dist < sensingRadius)
             {
-                if (Vector3.Distance(e.transform.position, node.GetNodeWorldPos()) < sensingRadius)
-                {
-                    wolves.Add(e);
-                }
-            }
+                 wolves.Add(e,dist);
+             }
         }
         return wolves;
     }
-
-    public static Vector3 GetClosestGrassPos(Node node, int sensingRadius)
+    
+    public static Dictionary<Entity, float> FindGrassAroundNode(Node node, float sensingRadius)
     {
-        List<Entity> grass = new List<Entity>();
-        if (node == null) return Vector3.zero;
-        foreach (var e in _entities)
+        Dictionary<Entity, float> grassList = new Dictionary<Entity, float>();
+        if (node == null) return grassList;
+        foreach (var e in _grassList)
         {
-            if (e.GetEntityType() == Entity.EntityType.GRASS)
+            float dist = Vector3.Distance(e.transform.position, node.GetNodeWorldPos());
+            if (dist < sensingRadius)
             {
-                // TODO fix magic number
-                if (Vector3.Distance(e.transform.position, node.GetNodeWorldPos()) < sensingRadius)
-                {
-                    grass.Add(e);
-                }
+                grassList.Add(e,dist);
             }
         }
-
-        if (grass.Count > 0)
-        {
-            return grass[Random.Range(0, grass.Count)].transform.position;
-        }
-        else
-        {
-            return Vector3.zero;
-        }
+        return grassList;
     }
-
-    public static Vector3 GetClosestSheepPos(Node node, int sensingRadius)
+    
+    public static Dictionary<Entity, float> FindEntityAround(Vector3 pos, float sensingRadius, Entity.EntityType type)
     {
-        List<Entity> grass = new List<Entity>();
-        if (node == null) return Vector3.zero;
+        Dictionary<Entity, float> animals = new Dictionary<Entity, float>();
+        
         foreach (var e in _entities)
         {
-            if (e.GetEntityType() == Entity.EntityType.SHEEP)
-            {
-                // TODO fix magic number
-                if (Vector3.Distance(e.transform.position, node.GetNodeWorldPos()) < sensingRadius)
+            if (e.GetEntityType() == type)
+            {         
+                float dist = Vector3.Distance(e.transform.position, pos);
+                if (dist < sensingRadius)
                 {
-                    grass.Add(e);
+                    animals.Add(e,dist);
                 }
             }
         }
-
-        if (grass.Count > 0)
-        {
-            return grass[Random.Range(0, grass.Count)].transform.position;
-        }
-        else
-        {
-            return Vector3.zero;
-        }
+        return animals;
     }
     }
 }

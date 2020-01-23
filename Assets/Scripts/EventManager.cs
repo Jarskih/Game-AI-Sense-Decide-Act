@@ -11,10 +11,10 @@ namespace FlatEarth
             public readonly int id;
             public readonly Node node;
 
-        public EventMessage(Node node, int id)
+        public EventMessage(int id, Node node = null)
         {
-            this.node = node; // Node reference
             this.id = id; // Sender Id
+            this.node = node; // Node reference
         }
     }
     [System.Serializable]

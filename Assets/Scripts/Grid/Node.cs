@@ -37,17 +37,17 @@ namespace FlatEarth
             }
         }
 
-        public List<Entity> GetEntities()
-        {
-            return _entities; 
-        }
-
         public void RemoveEntity(Entity entity)
         {
             if (_entities.Contains(entity))
             {
                 _entities.Remove(entity);
             }
+        }
+
+        public List<Entity> GetEntities()
+        {
+            return _entities;
         }
     }
 }

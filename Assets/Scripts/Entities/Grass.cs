@@ -35,8 +35,6 @@ namespace FlatEarth
             _id = gameObject.GetInstanceID();
             EventManager.StartListening("GrassEaten", Eaten);
             _grid = grid;
-            _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
-            _currentNode.AddEntity(this);
         }
         
         public override EntityType GetEntityType()
@@ -151,7 +149,11 @@ namespace FlatEarth
                 {
                     _mature = true;
                 }
-            } 
+            }
+
+            var scale = _health * 0.01f;
+            scale = Mathf.Clamp(scale, 0, 0.9f);
+            transform.localScale = new Vector3(scale, transform.localScale.y, scale);
         }
 
         private void Spread()
@@ -185,14 +187,14 @@ namespace FlatEarth
             if (validNodes.Count > 0)
             {
                 var nodeToSpread = validNodes[UnityEngine.Random.Range(0, validNodes.Count)];
-                EventManager.EventMessage message = new EventManager.EventMessage(nodeToSpread, _id);
+                EventManager.EventMessage message = new EventManager.EventMessage(_id, nodeToSpread);
                 EventManager.TriggerEvent("GrassSpreading", message);
             }
         }
 
         private void Eaten(EventManager.EventMessage message)
         {
-            if (_currentNode == message.node)
+            if (_id == message.id)
             {
                 Die();
             }
@@ -202,7 +204,7 @@ namespace FlatEarth
         {
             _health = 0;
             _state = State.DEAD;
-            EventManager.EventMessage message = new EventManager.EventMessage(_currentNode, _id);
+            EventManager.EventMessage message = new EventManager.EventMessage(_id);
             EventManager.TriggerEvent("EntityDied", message);
         }
     }

@@ -1,4 +1,7 @@
-﻿using System.Numerics;
+﻿using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Linq;
+using System.Numerics;
 using TMPro.EditorUtilities;
 using UnityEngine;
 using Quaternion = UnityEngine.Quaternion;
@@ -23,7 +26,7 @@ namespace FlatEarth
         [SerializeField] private State _state;
         [SerializeField] private Node _currentNode;
         [SerializeField] private Node _oldNode;
-        [SerializeField] private int _sensingRadius = 3;
+        [SerializeField] private int _sensingRadius = 5;
         private readonly bool[] _urges;
         
         // Reproduction
@@ -42,13 +45,15 @@ namespace FlatEarth
         [SerializeField] private float _hungerLimit = 30;
         [SerializeField] private float _hunger = 0;
         [SerializeField] private Vector3 _targetPos;
-        private float _walkSpeed = 0.01f;
+        private float _walkSpeed = 0.05f;
+        private float _runSpeed = 0.1f;
  
         // urges
         private bool _isInDanger;
-        private bool _isHungry;
-        private bool _isHealthy;
         [SerializeField] private Vector3 _foodLocation;
+
+        [SerializeField] private Dictionary<Entity, float> _grassNear;
+        [SerializeField] private Dictionary<Entity, float> _wolvesNear;
 
         public void Init(Grid grid)
         {
@@ -56,7 +61,6 @@ namespace FlatEarth
             EventManager.StartListening("SheepEaten", Eaten);
             _grid = grid;
             _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
-            _currentNode.AddEntity(this);
             _oldNode = _currentNode;
         }
 
@@ -73,12 +77,6 @@ namespace FlatEarth
         {
             // Increment counters
             _hunger += Time.deltaTime * _hungerSpeed;
-         
-            // Is hungry?
-            _isHungry = _hunger > _hungerLimit;
-            
-            // Wants to reproduce?
-            _isHealthy = _health >= _maxHealth;
             
             // If starving lose health otherwise get stronger
             if (_hunger > _maxHunger)
@@ -89,22 +87,14 @@ namespace FlatEarth
             {
                 _health += Time.deltaTime * _recoverSpeed;
             }
-
-            if (EntityManager.FindWolvesAroundNode(_currentNode, _sensingRadius).Count > 0)
-            {
-                _isInDanger = true;
-            }
-            else
-            {
-                _isInDanger = false;
-            }
             
             // Starved to death
             if (_health < 0)
             {
                 Die();
+                return;
             }
-
+            
             _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
             
             if (_currentNode != null && _currentNode != _oldNode)
@@ -113,8 +103,10 @@ namespace FlatEarth
                 _oldNode.RemoveEntity(this);
                 _oldNode = _currentNode;
             }
-
-            //TODO find wolves
+            
+            // Sense nearby entities
+            _wolvesNear = EntityManager.FindEntityAround(transform.position, _sensingRadius, EntityType.WOLF);
+            _grassNear = EntityManager.FindEntityAround(transform.position, _sensingRadius, EntityType.GRASS);
         }
 
         public override void Think()
@@ -124,25 +116,28 @@ namespace FlatEarth
 
             // Priorities 
             // 1. Run from danger
-            if(_isInDanger)
+            if(_wolvesNear.Count > 0)
             {
                 // TODO find flee direction
                 _state = State.FLEEING;
                 return;
             }
             // 2. Look for food
-            if (_isHungry)
+            if (_hunger > _hungerLimit)
             {
-                // TODO find where closest food is
-                if (_foodLocation == Vector3.zero)
+                
+                // Sort the dictionary to get the highest priority item
+                var ordered = _grassNear.OrderByDescending(x => x.Value).ToList();
+                if (ordered.Count > 0)
                 {
-                    _foodLocation = EntityManager.GetClosestGrassPos(_currentNode, _sensingRadius);
+                    var food = ordered[0].Key;
+                    _foodLocation = food.transform.position;
                 }
                 _state = State.LOOKING_FOR_FOOD;
                 return;
             }
             // 3. Reproduce
-            if (_isHealthy)
+            if (_health >= _maxHealth)
             {
                 // TODO find where closest food is
                 _state = State.BREEDING;
@@ -168,50 +163,65 @@ namespace FlatEarth
                     Flee();
                     break;
             }
+
+            Mathf.Clamp(transform.position.x, 0, 25);
+            Mathf.Clamp(transform.position.z, 0, 25);
         }
 
         private void Flee()
         {
+          Quaternion lookAt = Quaternion.identity;
           float maxTurningDelta = 10;
-          var wolves = EntityManager.FindWolvesAroundNode(_currentNode, _sensingRadius);
           var direction = Vector3.zero;
 
-          foreach (var wolf in wolves)
+          foreach (var wolf in _wolvesNear)
           {
-              direction += transform.position-wolf.transform.position;
+              direction += transform.position - wolf.Key.transform.position;
           }
-
-          var lookAt = Quaternion.LookRotation(direction.normalized);
-          Quaternion rotateDir = Quaternion.Inverse(lookAt);
+         
+          _targetPos = transform.position + transform.forward * 1;
           
+          if (_grid.IsOutsideGrid(_targetPos))
+          { 
+              // We hit the end of the grid. Turn around
+              var angle = 180;
+              lookAt = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y + angle, transform.rotation.eulerAngles.z);
+              maxTurningDelta = 180;
+          }
+          else
+          {
+              // Randomly turn left or right or continue straight
+              lookAt = Quaternion.LookRotation(direction.normalized);
+              maxTurningDelta = 1;
+          }
+          
+
           transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
-          _targetPos = transform.position + transform.forward * 3;
-          transform.position = Vector3.MoveTowards(transform.position, _targetPos, _walkSpeed);
+          transform.position = Vector3.MoveTowards(transform.position, _targetPos, _runSpeed);
         }
 
         private void FindWanderTarget()
         {
             int angle = 0;
             float maxTurningDelta = 1; // in degrees
-            bool isOutsideGrid = _grid.IsOutsideGrid(transform.position + transform.forward*1);
-                if (isOutsideGrid)
-                { 
-                    // We hit the end of the grid. Turn around
-                    angle = 180;
-                    maxTurningDelta = 180;
-                }
-                else
-                {
-                    // Randomly turn left or right or continue straight
-                    angle = _wanderAngles[Random.Range(0, _wanderAngles.Length)];
-                    maxTurningDelta = 1;
-                }
+            var nextPos = transform.position + transform.forward * 1;
+            if (_grid.IsOutsideGrid(nextPos))
+            { 
+                // We hit the end of the grid. Turn around
+                angle = 180;
+                maxTurningDelta = 180;
+            }
+            else
+            {
+                // Randomly turn left or right or continue straight
+                angle = _wanderAngles[Random.Range(0, _wanderAngles.Length)];
+                maxTurningDelta = 1;
+            }
 
-                Quaternion rotateDir = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y + angle, transform.rotation.eulerAngles.z);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, rotateDir, maxTurningDelta);
-                _targetPos = transform.position + transform.forward * 3;
+            Quaternion rotateDir = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y + angle, transform.rotation.eulerAngles.z);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, rotateDir, maxTurningDelta);
+            _targetPos = transform.position + transform.forward * 1;
         }
-
         private void Wander()
         {
             transform.position = Vector3.MoveTowards(transform.position, _targetPos, _walkSpeed);
@@ -239,7 +249,7 @@ namespace FlatEarth
             {
                 _foodLocation = Vector3.zero;
                 _hunger = 0;
-                EventManager.EventMessage message = new EventManager.EventMessage(_currentNode, id);
+                EventManager.EventMessage message = new EventManager.EventMessage(id);
                 EventManager.TriggerEvent("RemoveDied", message);  
             }
             else
@@ -263,7 +273,7 @@ namespace FlatEarth
         {
             _health = 0;
             _state = State.DEAD;
-            EventManager.EventMessage message = new EventManager.EventMessage(_currentNode, _id);
+            EventManager.EventMessage message = new EventManager.EventMessage(_id);
             EventManager.TriggerEvent("EntityDied", message);
         }
     }
