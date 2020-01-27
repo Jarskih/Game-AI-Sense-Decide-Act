@@ -5,6 +5,9 @@ namespace FlatEarth
 {
     public abstract class Entity : MonoBehaviour, IGoap
     {
+        [SerializeField] protected float _maxHunger = 100;
+        [SerializeField] protected float _hunger = 0;
+
         public enum EntityType
         {
             SHEEP,
@@ -53,5 +56,10 @@ namespace FlatEarth
         public abstract bool moveAgent(GoapAction nextAction);
 
         public abstract Vector3 GetWanderPos();
+
+        public void RemoveHunger()
+        {
+            _hunger = 0;
+        }
     }
 }

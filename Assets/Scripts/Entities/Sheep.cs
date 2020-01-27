@@ -44,9 +44,7 @@ namespace FlatEarth
         
         // Wandering
         private readonly int[] _wanderAngles = {-15, -10, 5, 0, 0, 5, 10, 15};
-        [SerializeField] private float _maxHunger = 100;
         [SerializeField] private float _hungerLimit = 30;
-        [SerializeField] private float _hunger = 0;
         [SerializeField] private Vector3 _targetPos;
         private float _walkSpeed = 0.05f;
         private float _runSpeed = 0.1f;
@@ -68,7 +66,7 @@ namespace FlatEarth
             _oldNode = _currentNode;
 
             // GOAP actions
-            gameObject.AddComponent<WanderAction>();
+       //     gameObject.AddComponent<WanderAction>();
             gameObject.AddComponent<EatFoodAction>();
             _agent = gameObject.AddComponent<GoapAgent>();
         }
@@ -90,7 +88,7 @@ namespace FlatEarth
             // If starving lose health otherwise get stronger
             if (_hunger > _maxHunger)
             {
-                _health -= Time.deltaTime * _starveSpeed;
+               // _health -= Time.deltaTime * _starveSpeed;
             }
             else
             {
@@ -298,10 +296,10 @@ namespace FlatEarth
         public override HashSet<KeyValuePair<string,object>> createGoalState () {
             HashSet<KeyValuePair<string, object>> goal = new HashSet<KeyValuePair<string, object>>
             {
-                new KeyValuePair<string, object>("eat", true),
-                new KeyValuePair<string, object>("breed", true),
-                new KeyValuePair<string, object>("flee", true),
-                new KeyValuePair<string, object>("idle", true)
+                new KeyValuePair<string, object>("isHungry", false),
+            //    new KeyValuePair<string, object>("breed", true),
+            //    new KeyValuePair<string, object>("flee", true),
+            //    new KeyValuePair<string, object>("idle", true)
             };
 
             return goal;
@@ -312,9 +310,10 @@ namespace FlatEarth
             // move towards the NextAction's target
             float maxTurningDelta = 15;
             var pos = transform.position;
-            Quaternion lookAt = Quaternion.LookRotation(_foodLocation - pos);
+            var wanderPos = GetWanderPos();
+            Quaternion lookAt = Quaternion.LookRotation(wanderPos - pos);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
-            pos = Vector3.MoveTowards(pos, _foodLocation, _walkSpeed);
+            transform.position = Vector3.MoveTowards(pos, wanderPos, _walkSpeed);
 		
             if (Vector3.Distance(gameObject.transform.position,nextAction.target.transform.position) < 0.1f) {
                 // we are at the target location, we are done
@@ -351,10 +350,12 @@ namespace FlatEarth
 
         public override HashSet<KeyValuePair<string, object>> getWorldState()
         {
-            HashSet<KeyValuePair<string,object>> worldData = new HashSet<KeyValuePair<string,object>> ();
-            worldData.Add(new KeyValuePair<string, object>("isHungry", (_hunger > _hungerLimit) ));
-            worldData.Add(new KeyValuePair<string, object>("isScared", (_threatNear.Count > 0) ));
-            worldData.Add(new KeyValuePair<string, object>("isIdle", _hunger < _hungerLimit && _threatNear.Count == 0));
+            HashSet<KeyValuePair<string, object>> worldData = new HashSet<KeyValuePair<string, object>>
+            {
+                new KeyValuePair<string, object>("isHungry", (_hunger > _hungerLimit)),
+              //  new KeyValuePair<string, object>("isScared", (_threatNear.Count > 0)),
+              //  new KeyValuePair<string, object>("isIdle", _hunger < _hungerLimit && _threatNear.Count == 0)
+            };
             return worldData;
         }
     }

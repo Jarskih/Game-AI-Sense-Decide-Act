@@ -95,7 +95,7 @@ public class GoapPlanner
 		foreach (GoapAction action in usableActions) {
 
 			// if the parent state has the conditions for this action's preconditions, we can use it here
-			if ( inState(action.Preconditions, parent.state) ) {
+			if ( inState(action.Effects, parent.state) ) {
 
 				// apply the action's effects to the parent state
 				HashSet<KeyValuePair<string,object>> currentState = populateState (parent.state, action.Effects);

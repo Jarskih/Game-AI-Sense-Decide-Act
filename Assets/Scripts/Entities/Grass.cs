@@ -34,7 +34,7 @@ namespace FlatEarth
 
         public void Init(Grid grid)
         {
-            _agent = gameObject.AddComponent<GoapAgent>();
+          //  _agent = gameObject.AddComponent<GoapAgent>();
             _id = gameObject.GetInstanceID();
             
             EventManager.StartListening("GrassEaten", Eaten);
@@ -223,10 +223,7 @@ namespace FlatEarth
         public override HashSet<KeyValuePair<string,object>> createGoalState () {
             HashSet<KeyValuePair<string, object>> goal = new HashSet<KeyValuePair<string, object>>
             {
-                new KeyValuePair<string, object>("eat", false),
-                new KeyValuePair<string, object>("breed", true),
-                new KeyValuePair<string, object>("flee", false),
-                new KeyValuePair<string, object>("idle", true)
+                
             };
 
             return goal;
@@ -246,8 +243,6 @@ namespace FlatEarth
         public override HashSet<KeyValuePair<string, object>> getWorldState()
         {
             HashSet<KeyValuePair<string,object>> worldData = new HashSet<KeyValuePair<string,object>> ();
-            worldData.Add(new KeyValuePair<string, object>("isHungry", false ));
-            worldData.Add(new KeyValuePair<string, object>("isScared", false));
             return worldData;
         }  
     }

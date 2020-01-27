@@ -15,9 +15,9 @@ namespace FlatEarth
 
         public EatFoodAction()
         {
-            addPrecondition("sawFood", true);
             addPrecondition("isHungry", true);
-            addEffect("isHungry", false);
+            addEffect("isHungry",false);
+            cost = 2;
         }
 
         protected override void reset()
@@ -53,9 +53,9 @@ namespace FlatEarth
         {
             _counter += Time.deltaTime;
 
-            if (_counter > _actionDuration)
-            {
+            if (_counter > _actionDuration) {
                 _ateFood = true;
+                agent.GetComponent<Entity>().RemoveHunger();
                 EventManager.EventMessage message = new EventManager.EventMessage(_targetFood.GetId());
                 EventManager.TriggerEvent("EntityDied", message);
             }

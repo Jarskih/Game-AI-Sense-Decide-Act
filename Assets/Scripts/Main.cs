@@ -11,7 +11,7 @@ namespace FlatEarth
         
         private readonly int _startingWolfs = 1;
         private readonly int _startingSheep = 1;
-        private readonly int _startingGrass = 0;
+        private readonly int _startingGrass = 1;
 
         [SerializeField] private Grid _grid;
         private EntityManager _entityManager;
