@@ -11,6 +11,9 @@ namespace FlatEarth
 {
     public class Sheep : Entity
     {
+        // GOAP
+        private GoapAgent _agent;
+
         private enum State
         {
             DEAD,
@@ -52,16 +55,22 @@ namespace FlatEarth
         private bool _isInDanger;
         [SerializeField] private Vector3 _foodLocation;
 
-        [SerializeField] private Dictionary<Entity, float> _grassNear;
-        [SerializeField] private Dictionary<Entity, float> _wolvesNear;
+        [SerializeField] private Dictionary<Entity, float> _foodNear = new Dictionary<Entity, float>();
+        [SerializeField] private Dictionary<Entity, float> _threatNear = new Dictionary<Entity, float>();
 
         public void Init(Grid grid)
         {
+
             _id = gameObject.GetInstanceID();
             EventManager.StartListening("SheepEaten", Eaten);
             _grid = grid;
             _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
             _oldNode = _currentNode;
+
+            // GOAP actions
+            gameObject.AddComponent<WanderAction>();
+            gameObject.AddComponent<EatFoodAction>();
+            _agent = gameObject.AddComponent<GoapAgent>();
         }
 
         public override EntityType GetEntityType()
@@ -105,18 +114,19 @@ namespace FlatEarth
             }
             
             // Sense nearby entities
-            _wolvesNear = EntityManager.FindEntityAround(transform.position, _sensingRadius, EntityType.WOLF);
-            _grassNear = EntityManager.FindEntityAround(transform.position, _sensingRadius, EntityType.GRASS);
+            _threatNear = EntityManager.FindEntityAround(transform.position, _sensingRadius, EntityType.WOLF);
+            _foodNear = EntityManager.FindEntityAround(transform.position, _sensingRadius, EntityType.GRASS);
         }
 
         public override void Think()
         {
+            return;
             // Default to wandering
             _state = State.WANDERING;
 
             // Priorities 
             // 1. Run from danger
-            if(_wolvesNear.Count > 0)
+            if(_threatNear.Count > 0)
             {
                 // TODO find flee direction
                 _state = State.FLEEING;
@@ -127,7 +137,7 @@ namespace FlatEarth
             {
                 
                 // Sort the dictionary to get the highest priority item
-                var ordered = _grassNear.OrderByDescending(x => x.Value).ToList();
+                var ordered = _foodNear.OrderByDescending(x => x.Value).ToList();
                 if (ordered.Count > 0)
                 {
                     var food = ordered[0].Key;
@@ -149,6 +159,7 @@ namespace FlatEarth
         
         public override void Act()
         {
+            return;
             switch (_state) 
             {
                 case State.DEAD:
@@ -168,13 +179,18 @@ namespace FlatEarth
             Mathf.Clamp(transform.position.z, 0, 25);
         }
 
+        public override Dictionary<Entity, float> FindFood()
+        {
+            return _foodNear;
+        }
+        
         private void Flee()
         {
           Quaternion lookAt = Quaternion.identity;
           float maxTurningDelta = 10;
           var direction = Vector3.zero;
 
-          foreach (var wolf in _wolvesNear)
+          foreach (var wolf in _threatNear)
           {
               direction += transform.position - wolf.Key.transform.position;
           }
@@ -275,6 +291,71 @@ namespace FlatEarth
             _state = State.DEAD;
             EventManager.EventMessage message = new EventManager.EventMessage(_id);
             EventManager.TriggerEvent("EntityDied", message);
+        }
+
+        // GOAP
+        
+        public override HashSet<KeyValuePair<string,object>> createGoalState () {
+            HashSet<KeyValuePair<string, object>> goal = new HashSet<KeyValuePair<string, object>>
+            {
+                new KeyValuePair<string, object>("eat", true),
+                new KeyValuePair<string, object>("breed", true),
+                new KeyValuePair<string, object>("flee", true),
+                new KeyValuePair<string, object>("idle", true)
+            };
+
+            return goal;
+        }
+
+        public override bool moveAgent(GoapAction nextAction)
+        {
+            // move towards the NextAction's target
+            float maxTurningDelta = 15;
+            var pos = transform.position;
+            Quaternion lookAt = Quaternion.LookRotation(_foodLocation - pos);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
+            pos = Vector3.MoveTowards(pos, _foodLocation, _walkSpeed);
+		
+            if (Vector3.Distance(gameObject.transform.position,nextAction.target.transform.position) < 0.1f) {
+                // we are at the target location, we are done
+                nextAction.setInRange(true);
+                return true;
+            }
+
+            return false;
+        }
+
+        public override Vector3 GetWanderPos()
+        {
+            int angle = 0;
+            float maxTurningDelta = 1; // in degrees
+            var nextPos = transform.position + transform.forward * 1;
+            if (_grid.IsOutsideGrid(nextPos))
+            { 
+                // We hit the end of the grid. Turn around
+                angle = 180;
+                maxTurningDelta = 180;
+            }
+            else
+            {
+                // Randomly turn left or right or continue straight
+                angle = _wanderAngles[Random.Range(0, _wanderAngles.Length)];
+                maxTurningDelta = 1;
+            }
+
+            Quaternion rotateDir = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y + angle, transform.rotation.eulerAngles.z);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, rotateDir, maxTurningDelta);
+
+            return transform.position + transform.forward * 1;
+        }
+
+        public override HashSet<KeyValuePair<string, object>> getWorldState()
+        {
+            HashSet<KeyValuePair<string,object>> worldData = new HashSet<KeyValuePair<string,object>> ();
+            worldData.Add(new KeyValuePair<string, object>("isHungry", (_hunger > _hungerLimit) ));
+            worldData.Add(new KeyValuePair<string, object>("isScared", (_threatNear.Count > 0) ));
+            worldData.Add(new KeyValuePair<string, object>("isIdle", _hunger < _hungerLimit && _threatNear.Count == 0));
+            return worldData;
         }
     }
 }

@@ -7,6 +7,10 @@
       <e p="Assembly-CSharp.csproj" t="IncludeRecursive" />
       <e p="Assets" t="Include">
         <e p="Scripts" t="Include">
+          <e p="Actions" t="Include">
+            <e p="EatFoodAction.cs" t="Include" />
+            <e p="WanderAction.cs" t="Include" />
+          </e>
           <e p="Entities" t="Include">
             <e p="Entity.cs" t="Include" />
             <e p="Grass.cs" t="Include" />
@@ -15,6 +19,16 @@
           </e>
           <e p="EntityManager.cs" t="Include" />
           <e p="EventManager.cs" t="Include" />
+          <e p="FSM" t="Include">
+            <e p="FSM.cs" t="Include" />
+            <e p="FSMState.cs" t="Include" />
+          </e>
+          <e p="GOAP" t="Include">
+            <e p="GoapAction.cs" t="Include" />
+            <e p="GoapAgent.cs" t="Include" />
+            <e p="GoapPlanner.cs" t="Include" />
+            <e p="IGoap.cs" t="Include" />
+          </e>
           <e p="Grid" t="Include">
             <e p="Grid.cs" t="Include" />
             <e p="Node.cs" t="Include" />

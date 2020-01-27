@@ -10,6 +10,7 @@ namespace FlatEarth
 {
     public class Wolf : Entity
     {
+        private GoapAgent _agent;
         private enum State
         {
             DEAD,
@@ -36,6 +37,7 @@ namespace FlatEarth
         [SerializeField] private float _hungerSpeed = 2;
         [SerializeField] private float _starveSpeed = 2;
         [SerializeField] private float _recoverSpeed;
+        [SerializeField] private Dictionary<Entity, float> _foodNear = new Dictionary<Entity, float>();
         
         // Wandering
         private readonly int[] _wanderAngles = {-15, -10, 5, 0, 0, 5, 10, 15};
@@ -47,16 +49,22 @@ namespace FlatEarth
         private float _runSpeed = 0.06f;
         private float _slowTurnSpeed = 1;
         private float _fastTurnSpeed = 3;
- 
-  
+
+        [SerializeField] private Vector3 _foodLocation;
         [SerializeField] private Entity _prey;
 
         public void Init(Grid grid)
         {
+
             _id = gameObject.GetInstanceID();
             _grid = grid;
             _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
             _oldNode = _currentNode;
+            
+            // GOAP actions
+            gameObject.AddComponent<WanderAction>();
+            gameObject.AddComponent<EatFoodAction>();
+            _agent = gameObject.AddComponent<GoapAgent>();
         }
 
         public override EntityType GetEntityType()
@@ -102,6 +110,7 @@ namespace FlatEarth
 
         public override void Think()
         {
+            return;
             // Default to wandering
             _state = State.WANDERING;
 
@@ -111,8 +120,8 @@ namespace FlatEarth
             {
                 if (_prey == null)
                 {
-                    Dictionary<Entity, float> entities = EntityManager.FindEntityAround(transform.position, _sensingRadius, EntityType.SHEEP);
-                    var ordered = entities.OrderByDescending(x => x.Value).ToList();
+                    Dictionary<Entity, float> _foodNear = EntityManager.FindEntityAround(transform.position, _sensingRadius, EntityType.SHEEP);
+                    var ordered = _foodNear.OrderByDescending(x => x.Value).ToList();
                     _prey = ordered[0].Key;
                 }
                 _state = State.LOOKING_FOR_FOOD;
@@ -131,6 +140,7 @@ namespace FlatEarth
         
         public override void Act()
         {
+            return;
             switch (_state) 
             {
                 case State.DEAD:
@@ -148,6 +158,11 @@ namespace FlatEarth
             
             Mathf.Clamp(transform.position.x, 0, 25);
             Mathf.Clamp(transform.position.z, 0, 25);
+        }
+
+        public override Dictionary<Entity, float> FindFood()
+        {
+            return _foodNear;
         }
 
         private void Flee()
@@ -201,10 +216,10 @@ namespace FlatEarth
             else
             {
                 float maxTurningDelta = 15;
-                var foodPos = _prey.transform.position;
-                Quaternion lookAt = Quaternion.LookRotation(foodPos - transform.position);
+                _foodLocation = _prey.transform.position;
+                Quaternion lookAt = Quaternion.LookRotation(_foodLocation - transform.position);
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
-                transform.position = Vector3.MoveTowards(transform.position, foodPos, _runSpeed);
+                transform.position = Vector3.MoveTowards(transform.position, _foodLocation, _runSpeed);
             }
         }
 
@@ -214,6 +229,72 @@ namespace FlatEarth
             _state = State.DEAD;
             EventManager.EventMessage message = new EventManager.EventMessage(_id);
             EventManager.TriggerEvent("EntityDied", message);
+        }
+        
+        // GOAP
+        
+                
+        public override HashSet<KeyValuePair<string,object>> createGoalState () {
+            HashSet<KeyValuePair<string, object>> goal = new HashSet<KeyValuePair<string, object>>
+            {
+                new KeyValuePair<string, object>("eat", true),
+                new KeyValuePair<string, object>("breed", true),
+                new KeyValuePair<string, object>("flee", false),
+                new KeyValuePair<string, object>("idle", true)
+            };
+
+            return goal;
+        }
+
+        public override bool moveAgent(GoapAction nextAction)
+        {
+            // move towards the NextAction's target
+            float maxTurningDelta = 15;
+            var pos = transform.position;
+            Quaternion lookAt = Quaternion.LookRotation(_foodLocation - pos);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
+            pos = Vector3.MoveTowards(pos, _foodLocation, _walkSpeed);
+		
+            if (Vector3.Distance(gameObject.transform.position,nextAction.target.transform.position) < 0.1f) {
+                // we are at the target location, we are done
+                nextAction.setInRange(true);
+                return true;
+            }
+
+            return false;
+        }
+
+        public override Vector3 GetWanderPos()
+        {
+            int angle = 0;
+            float maxTurningDelta = 1; // in degrees
+            var nextPos = transform.position + transform.forward * 1;
+            if (_grid.IsOutsideGrid(nextPos))
+            { 
+                // We hit the end of the grid. Turn around
+                angle = 180;
+                maxTurningDelta = 180;
+            }
+            else
+            {
+                // Randomly turn left or right or continue straight
+                angle = _wanderAngles[Random.Range(0, _wanderAngles.Length)];
+                maxTurningDelta = 1;
+            }
+
+            Quaternion rotateDir = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y + angle, transform.rotation.eulerAngles.z);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, rotateDir, maxTurningDelta);
+
+            return transform.position + transform.forward * 1;
+        }
+
+        public override HashSet<KeyValuePair<string, object>> getWorldState()
+        {
+            HashSet<KeyValuePair<string,object>> worldData = new HashSet<KeyValuePair<string,object>> ();
+            worldData.Add(new KeyValuePair<string, object>("isHungry", (_hunger > _hungerLimit) ));
+            worldData.Add(new KeyValuePair<string, object>("isScared", false));
+            worldData.Add(new KeyValuePair<string, object>("isIdle", _hunger < _hungerLimit));
+            return worldData;
         }
     }
 }

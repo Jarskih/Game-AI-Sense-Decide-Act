@@ -9,9 +9,9 @@ namespace FlatEarth
         private readonly int _gridSizeY = 1;
         private readonly int _gridSizeZ = 25;
         
-        private readonly int _startingWolfs = 5;
-        private readonly int _startingSheep = 25;
-        private readonly int _startingGrass = 50;
+        private readonly int _startingWolfs = 1;
+        private readonly int _startingSheep = 1;
+        private readonly int _startingGrass = 0;
 
         [SerializeField] private Grid _grid;
         private EntityManager _entityManager;
@@ -31,6 +31,7 @@ namespace FlatEarth
             // Create entities
             _entityManager = gameObject.AddComponent<EntityManager>();
             _entityManager.Init(_grid, _startingWolfs, _startingSheep, _startingGrass);
+            
         }
 
         // Update is called once per frame

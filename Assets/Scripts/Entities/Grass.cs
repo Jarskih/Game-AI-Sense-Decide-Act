@@ -5,6 +5,8 @@ namespace FlatEarth
 {
     public class Grass : Entity
     {
+        private GoapAgent _agent;
+        
         [SerializeField] private float _growSpeed = 20f;
         [SerializeField] private float _lifetimeAsMature = 30;
         [SerializeField] private float _spreadInterval = 5;
@@ -32,7 +34,9 @@ namespace FlatEarth
 
         public void Init(Grid grid)
         {
+            _agent = gameObject.AddComponent<GoapAgent>();
             _id = gameObject.GetInstanceID();
+            
             EventManager.StartListening("GrassEaten", Eaten);
             _grid = grid;
         }
@@ -126,6 +130,11 @@ namespace FlatEarth
             }
         }
 
+        public override Dictionary<Entity, float> FindFood()
+        {
+            return null;
+        }
+
         private void Grow()
         {
             if (_mature)
@@ -207,5 +216,39 @@ namespace FlatEarth
             EventManager.EventMessage message = new EventManager.EventMessage(_id);
             EventManager.TriggerEvent("EntityDied", message);
         }
+        
+        
+        // GOAP
+        
+        public override HashSet<KeyValuePair<string,object>> createGoalState () {
+            HashSet<KeyValuePair<string, object>> goal = new HashSet<KeyValuePair<string, object>>
+            {
+                new KeyValuePair<string, object>("eat", false),
+                new KeyValuePair<string, object>("breed", true),
+                new KeyValuePair<string, object>("flee", false),
+                new KeyValuePair<string, object>("idle", true)
+            };
+
+            return goal;
+        }
+
+        public override bool moveAgent(GoapAction nextAction)
+        {
+            // Grass doesnt move
+            return true;
+        }
+
+        public override Vector3 GetWanderPos()
+        {
+            return Vector3.zero;
+        }
+
+        public override HashSet<KeyValuePair<string, object>> getWorldState()
+        {
+            HashSet<KeyValuePair<string,object>> worldData = new HashSet<KeyValuePair<string,object>> ();
+            worldData.Add(new KeyValuePair<string, object>("isHungry", false ));
+            worldData.Add(new KeyValuePair<string, object>("isScared", false));
+            return worldData;
+        }  
     }
 }
