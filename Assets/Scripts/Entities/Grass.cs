@@ -5,7 +5,8 @@ namespace FlatEarth
 {
     public class Grass : Entity
     {
-        private GoapAgent _agent;
+        private Stats _stats;
+        public Stats stats => _stats;
         
         [SerializeField] private float _growSpeed = 20f;
         [SerializeField] private float _lifetimeAsMature = 30;
@@ -135,6 +136,18 @@ namespace FlatEarth
             return null;
         }
 
+        public override void Eat()
+        {
+        }
+
+        public override void Flee()
+        {
+        }
+
+        public override void Wander()
+        {
+        }
+
         private void Grow()
         {
             if (_mature)
@@ -216,34 +229,5 @@ namespace FlatEarth
             EventManager.EventMessage message = new EventManager.EventMessage(_id);
             EventManager.TriggerEvent("EntityDied", message);
         }
-        
-        
-        // GOAP
-        
-        public override HashSet<KeyValuePair<string,object>> createGoalState () {
-            HashSet<KeyValuePair<string, object>> goal = new HashSet<KeyValuePair<string, object>>
-            {
-                
-            };
-
-            return goal;
-        }
-
-        public override bool moveAgent(GoapAction nextAction)
-        {
-            // Grass doesnt move
-            return true;
-        }
-
-        public override Vector3 GetWanderPos()
-        {
-            return Vector3.zero;
-        }
-
-        public override HashSet<KeyValuePair<string, object>> getWorldState()
-        {
-            HashSet<KeyValuePair<string,object>> worldData = new HashSet<KeyValuePair<string,object>> ();
-            return worldData;
-        }  
     }
 }

@@ -11,12 +11,12 @@ namespace FlatEarth
         
         private readonly int _startingWolfs = 1;
         private readonly int _startingSheep = 1;
-        private readonly int _startingGrass = 1;
+        private readonly int _startingGrass = 25;
 
+        private int frame = 10;
+        
         [SerializeField] private Grid _grid;
         private EntityManager _entityManager;
-        
-        // Start is called before the first frame update
         void Start()
         {
             gameObject.AddComponent<EventManager>();
@@ -40,15 +40,12 @@ namespace FlatEarth
             foreach (var entity in _entityManager.entities)
             {
                 entity.Sense();
-            }
+                frame++;
+                if (frame > 10)
+                {
+                    entity.Think();
+                }
 
-            foreach (var entity in _entityManager.entities)
-            {
-                entity.Think();
-            }
-
-            foreach (var entity in _entityManager.entities)
-            {
                 entity.Act();
             }
 

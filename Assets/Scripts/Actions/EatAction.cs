@@ -1,33 +1,30 @@
-using UnityEngine;
+﻿using System.Diagnostics;
+using Debug = UnityEngine.Debug;
 
 namespace FlatEarth
 {
-    public class WanderAction : Action
+    public class EatAction : Action
     {
-        public WanderAction(int pPriority)
+        public EatAction(int pPriority)
         {
             base.priority = pPriority;
         }
-
-
+        
         public override bool CanDoAction(CurrentState state)
         {
-            if (state.GetState("isHungry"))
-            {
-                return false;
-            }
+            bool canDoIt = state.GetState("isHungry");
 
             if (state.GetState("isAfraid"))
             {
-                return false;
+                canDoIt = false;
             }
-
-            return true;
+            
+            return canDoIt;
         }
 
         public override void Act(Entity entity)
         {
-            entity.Wander();
+            entity.Eat();
         }
     }
 }

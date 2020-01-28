@@ -1,74 +1,71 @@
 ﻿using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Linq;
-using System.Numerics;
-using TMPro.EditorUtilities;
+using UnityEditor;
 using UnityEngine;
-using Quaternion = UnityEngine.Quaternion;
-using Vector3 = UnityEngine.Vector3;
 
 namespace FlatEarth
 {
-    public class Sheep : Entity
+    public sealed class Sheep : Entity
     {
-        // GOAP
-        private GoapAgent _agent;
-
-        private enum State
-        {
-            DEAD,
-            LOOKING_FOR_FOOD,
-            FLEEING,
-            WANDERING,
-            BREEDING,
-        }
+        private Stats _stats;
+        public Stats stats => _stats;
         
+        // internal state
+        private float _maxHunger = 100;
+        [SerializeField] private float _health = 1;
+        [SerializeField] private float _hunger = 0;
+ 
         private readonly EntityType type = EntityType.SHEEP;
         private int _id;
         private Grid _grid;
-        [SerializeField] private State _state;
+        
         [SerializeField] private Node _currentNode;
         [SerializeField] private Node _oldNode;
-        [SerializeField] private int _sensingRadius = 5;
-        private readonly bool[] _urges;
         
-        // Reproduction
-        [SerializeField] private double _maxHealth = 100;
-        [SerializeField] private float _health = 50;
-
         // Hunger
-
         [SerializeField] private float _hungerSpeed = 2;
-        [SerializeField] private float _starveSpeed = 5;
-        [SerializeField] private float _recoverSpeed;
+        [SerializeField] private float _starveSpeed = 2;
+        [SerializeField] private float _recoverSpeed = 2;
         
         // Wandering
         private readonly int[] _wanderAngles = {-15, -10, 5, 0, 0, 5, 10, 15};
         [SerializeField] private float _hungerLimit = 30;
         [SerializeField] private Vector3 _targetPos;
-        private float _walkSpeed = 0.05f;
-        private float _runSpeed = 0.1f;
  
-        // urges
-        private bool _isInDanger;
-        [SerializeField] private Vector3 _foodLocation;
 
         [SerializeField] private Dictionary<Entity, float> _foodNear = new Dictionary<Entity, float>();
         [SerializeField] private Dictionary<Entity, float> _threatNear = new Dictionary<Entity, float>();
+        private Entity _food;
 
         public void Init(Grid grid)
-        {
+        { 
+            EventManager.StartListening("SheepEaten", Eaten);
 
             _id = gameObject.GetInstanceID();
-            EventManager.StartListening("SheepEaten", Eaten);
             _grid = grid;
             _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
             _oldNode = _currentNode;
 
-            // GOAP actions
-       //     gameObject.AddComponent<WanderAction>();
-            gameObject.AddComponent<EatFoodAction>();
-            _agent = gameObject.AddComponent<GoapAgent>();
+            // Add actions this entity can perform and assign priorities for actions
+            _availableActions.Add(new WanderAction(1));
+            _availableActions.Add(new EatAction(2));
+            _availableActions.Add(new FleeAction(3));
+            
+            // Init stats
+            // init stats
+            _stats.hungerLimit = 30;
+            _stats.walkSpeed = 0.04f;
+            _stats.runSpeed = 0.06f;
+            _stats.slowTurnSpeed = 1;
+            _stats.fastTurnSpeed = 3;
+            _stats.maxHealth = 100;
+            _stats.sensingRadius = 3;
+        }
+        
+        private void OnDrawGizmos()
+        {
+            Gizmos.color = Color.white;
+            Gizmos.DrawWireSphere(transform.position,_stats.sensingRadius);
         }
 
         public override EntityType GetEntityType()
@@ -82,26 +79,10 @@ namespace FlatEarth
 
         public override void Sense()
         {
-            // Increment counters
-            _hunger += Time.deltaTime * _hungerSpeed;
-            
-            // If starving lose health otherwise get stronger
-            if (_hunger > _maxHunger)
-            {
-               // _health -= Time.deltaTime * _starveSpeed;
-            }
-            else
-            {
-                _health += Time.deltaTime * _recoverSpeed;
-            }
-            
-            // Starved to death
-            if (_health < 0)
-            {
-                Die();
-                return;
-            }
-            
+            _currentState.UpdateState("isHungry", _hunger > _hungerLimit);
+            _currentState.UpdateState("isAfraid", _threatNear.Count > 0);
+            _currentState.UpdateState("sawFood", _food != null);
+           
             _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
             
             if (_currentNode != null && _currentNode != _oldNode)
@@ -112,13 +93,30 @@ namespace FlatEarth
             }
             
             // Sense nearby entities
-            _threatNear = EntityManager.FindEntityAround(transform.position, _sensingRadius, EntityType.WOLF);
-            _foodNear = EntityManager.FindEntityAround(transform.position, _sensingRadius, EntityType.GRASS);
+            _threatNear = EntityManager.FindEntityAround(transform.position, stats.sensingRadius, EntityType.WOLF);
+            _foodNear = EntityManager.FindEntityAround(transform.position, stats.sensingRadius, EntityType.GRASS);
+            if (_foodNear.Count > 0)
+            {
+                var ordered = _foodNear.OrderByDescending(x => x.Value).ToList();
+                _food = ordered[0].Key;
+            }
         }
 
         public override void Think()
         {
-            return;
+            // Get actions entity can do
+            _currentAction = FindBestAction(_currentState);
+
+            if (_currentAction == null)
+            {
+                Debug.LogError("No action available");
+                Debug.LogError("isHungry: " + _currentState.GetState("isHungry").ToString());
+                Debug.LogError("isAfraid: " + _currentState.GetState("isAfraid").ToString());
+                Debug.LogError("sawFood: " + _currentState.GetState("sawFood").ToString());
+            }
+
+            /*
+            
             // Default to wandering
             _state = State.WANDERING;
 
@@ -153,11 +151,33 @@ namespace FlatEarth
             }
             // 4. Wander
             FindWanderTarget();
+            */
         }
-        
+
         public override void Act()
-        {
-            return;
+        {   
+            // Increment counters
+            _hunger += Time.deltaTime * _hungerSpeed;
+            
+            // If starving lose health otherwise get stronger
+            if (_hunger > _maxHunger)
+            {
+                // _health -= Time.deltaTime * _starveSpeed;
+            }
+            else
+            {
+                _health += Time.deltaTime * _recoverSpeed;
+            }
+                      
+            // Starved to death
+            if (_health < 0)
+            {
+                Die();
+            }
+            
+            _currentAction.Act(this);
+
+            /*
             switch (_state) 
             {
                 case State.DEAD:
@@ -175,14 +195,15 @@ namespace FlatEarth
 
             Mathf.Clamp(transform.position.x, 0, 25);
             Mathf.Clamp(transform.position.z, 0, 25);
+            */
         }
 
         public override Dictionary<Entity, float> FindFood()
         {
             return _foodNear;
         }
-        
-        private void Flee()
+       
+        public override void Flee()
         {
           Quaternion lookAt = Quaternion.identity;
           float maxTurningDelta = 10;
@@ -211,120 +232,17 @@ namespace FlatEarth
           
 
           transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
-          transform.position = Vector3.MoveTowards(transform.position, _targetPos, _runSpeed);
+          transform.position = Vector3.MoveTowards(transform.position, _targetPos, stats.runSpeed);
         }
 
-        private void FindWanderTarget()
+
+        public override void Wander()
         {
-            int angle = 0;
-            float maxTurningDelta = 1; // in degrees
-            var nextPos = transform.position + transform.forward * 1;
-            if (_grid.IsOutsideGrid(nextPos))
-            { 
-                // We hit the end of the grid. Turn around
-                angle = 180;
-                maxTurningDelta = 180;
-            }
-            else
-            {
-                // Randomly turn left or right or continue straight
-                angle = _wanderAngles[Random.Range(0, _wanderAngles.Length)];
-                maxTurningDelta = 1;
-            }
-
-            Quaternion rotateDir = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y + angle, transform.rotation.eulerAngles.z);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, rotateDir, maxTurningDelta);
-            _targetPos = transform.position + transform.forward * 1;
+            _targetPos = GetWanderPos();
+            transform.position = Vector3.MoveTowards(transform.position, _targetPos, stats.walkSpeed);
         }
-        private void Wander()
-        {
-            transform.position = Vector3.MoveTowards(transform.position, _targetPos, _walkSpeed);
-        }
-
-        private void Eat()
-        {
-            // Find grass
-            bool hasGrass = false;
-            int id = 0;
-            var entities = _grid.GetEntitiesOnNode(_currentNode);
-            if (entities.Count > 0)
-            {
-                foreach (var e in entities)
-                {
-                    if (e.GetEntityType() == EntityType.GRASS)
-                    {
-                        hasGrass = true;
-                        id = e.GetId();
-                    }
-                }
-            }
-
-            if (hasGrass)
-            {
-                _foodLocation = Vector3.zero;
-                _hunger = 0;
-                EventManager.EventMessage message = new EventManager.EventMessage(id);
-                EventManager.TriggerEvent("RemoveDied", message);  
-            }
-            else
-            {
-                float maxTurningDelta = 15;
-                Quaternion lookAt = Quaternion.LookRotation(_foodLocation - transform.position);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
-                transform.position = Vector3.MoveTowards(transform.position, _foodLocation, _walkSpeed);
-            }
-        }
-
-        private void Eaten(EventManager.EventMessage message)
-        {
-            if (_id == message.id)
-            {
-                Die();
-            }
-        }
-
-        private void Die()
-        {
-            _health = 0;
-            _state = State.DEAD;
-            EventManager.EventMessage message = new EventManager.EventMessage(_id);
-            EventManager.TriggerEvent("EntityDied", message);
-        }
-
-        // GOAP
         
-        public override HashSet<KeyValuePair<string,object>> createGoalState () {
-            HashSet<KeyValuePair<string, object>> goal = new HashSet<KeyValuePair<string, object>>
-            {
-                new KeyValuePair<string, object>("isHungry", false),
-            //    new KeyValuePair<string, object>("breed", true),
-            //    new KeyValuePair<string, object>("flee", true),
-            //    new KeyValuePair<string, object>("idle", true)
-            };
-
-            return goal;
-        }
-
-        public override bool moveAgent(GoapAction nextAction)
-        {
-            // move towards the NextAction's target
-            float maxTurningDelta = 15;
-            var pos = transform.position;
-            var wanderPos = GetWanderPos();
-            Quaternion lookAt = Quaternion.LookRotation(wanderPos - pos);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
-            transform.position = Vector3.MoveTowards(pos, wanderPos, _walkSpeed);
-		
-            if (Vector3.Distance(gameObject.transform.position,nextAction.target.transform.position) < 0.1f) {
-                // we are at the target location, we are done
-                nextAction.setInRange(true);
-                return true;
-            }
-
-            return false;
-        }
-
-        public override Vector3 GetWanderPos()
+        private Vector3 GetWanderPos()
         {
             int angle = 0;
             float maxTurningDelta = 1; // in degrees
@@ -348,15 +266,43 @@ namespace FlatEarth
             return transform.position + transform.forward * 1;
         }
 
-        public override HashSet<KeyValuePair<string, object>> getWorldState()
+        public override void Eat()
         {
-            HashSet<KeyValuePair<string, object>> worldData = new HashSet<KeyValuePair<string, object>>
+            if (_food == null)
             {
-                new KeyValuePair<string, object>("isHungry", (_hunger > _hungerLimit)),
-              //  new KeyValuePair<string, object>("isScared", (_threatNear.Count > 0)),
-              //  new KeyValuePair<string, object>("isIdle", _hunger < _hungerLimit && _threatNear.Count == 0)
-            };
-            return worldData;
+                Wander();
+                return;
+            }
+
+            if (Vector3.Distance(transform.position, _food.transform.position) < 1f)
+            {
+                _hunger = 0;
+                EventManager.EventMessage message = new EventManager.EventMessage(_food.GetId());
+                EventManager.TriggerEvent("EntityDied", message);
+            }
+            else
+            {
+                float maxTurningDelta = 15;
+                var _foodLocation = _food.transform.position;
+                Quaternion lookAt = Quaternion.LookRotation(_foodLocation - transform.position);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
+                transform.position = Vector3.MoveTowards(transform.position, _foodLocation, stats.walkSpeed);
+            }
+        }
+
+        private void Eaten(EventManager.EventMessage message)
+        {
+            if (_id == message.id)
+            {
+                Die();
+            }
+        }
+
+        private void Die()
+        {
+            _health = 0;
+            EventManager.EventMessage message = new EventManager.EventMessage(_id);
+            EventManager.TriggerEvent("EntityDied", message);
         }
     }
 }
