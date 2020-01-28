@@ -58,6 +58,12 @@ namespace FlatEarth
         {
             Gizmos.color = Color.white;
             Gizmos.DrawWireSphere(transform.position,_stats.sensingRadius);
+            
+            Gizmos.color = Color.red;
+            if (_food != null)
+            {
+                Gizmos.DrawCube(_food.transform.position, Vector3.one);
+            }
         }
 
         public override EntityType GetEntityType()

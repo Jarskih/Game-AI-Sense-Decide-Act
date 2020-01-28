@@ -9,9 +9,9 @@ namespace FlatEarth
         private readonly int _gridSizeY = 1;
         private readonly int _gridSizeZ = 25;
         
-        private readonly int _startingWolfs = 1;
-        private readonly int _startingSheep = 1;
-        private readonly int _startingGrass = 25;
+        private readonly int _startingWolfs = 5;
+        private readonly int _startingSheep = 25;
+        private readonly int _startingGrass = 10;
 
         private int frame = 10;
         
@@ -41,7 +41,7 @@ namespace FlatEarth
             {
                 entity.Sense();
                 frame++;
-                if (frame > 10)
+                if (frame > 60)
                 {
                     entity.Think();
                 }

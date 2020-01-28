@@ -66,6 +66,9 @@ namespace FlatEarth
         {
             Gizmos.color = Color.white;
             Gizmos.DrawWireSphere(transform.position,_stats.sensingRadius);
+            
+            Gizmos.color = Color.blue;
+            Gizmos.DrawCube(_food.transform.position, Vector3.one);
         }
 
         public override EntityType GetEntityType()
@@ -98,7 +101,7 @@ namespace FlatEarth
             if (_foodNear.Count > 0)
             {
                 var ordered = _foodNear.OrderByDescending(x => x.Value).ToList();
-                _food = ordered[0].Key;
+                _food = ordered[ordered.Count-1].Key;
             }
         }
 
@@ -274,10 +277,21 @@ namespace FlatEarth
                 return;
             }
 
-            if (Vector3.Distance(transform.position, _food.transform.position) < 1f)
+            Entity foodOnTile = null;
+
+            var entities = _grid.GetEntitiesOnNode(_currentNode);
+            foreach (var e in entities)
+            {
+                if (e.GetEntityType() == EntityType.GRASS)
+                {
+                    foodOnTile = e;
+                }
+            }
+
+            if (foodOnTile != null)
             {
                 _hunger = 0;
-                EventManager.EventMessage message = new EventManager.EventMessage(_food.GetId());
+                EventManager.EventMessage message = new EventManager.EventMessage(foodOnTile.GetId());
                 EventManager.TriggerEvent("EntityDied", message);
             }
             else
