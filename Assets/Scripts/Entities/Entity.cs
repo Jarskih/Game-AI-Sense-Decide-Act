@@ -20,7 +20,7 @@ namespace FlatEarth
         public abstract void Sense();
         public abstract void Think();
         public abstract void Act();
-        public abstract Dictionary<Entity, float> FindFood();
+        public abstract Entity FindFood();
         
         // GOAP
 
