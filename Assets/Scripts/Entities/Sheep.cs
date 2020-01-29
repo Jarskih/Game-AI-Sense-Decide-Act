@@ -1,14 +1,20 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.WSA;
 
 namespace FlatEarth
 {
     public sealed class Sheep : Entity
     {
+        // Components
         private Stats _stats;
         public Stats stats => _stats;
+        
+        private Hearing _hearing;
+        private Eyesight _eyeSight;
         
         // internal state
         private float _maxHunger = 100;
@@ -31,11 +37,16 @@ namespace FlatEarth
         private readonly int[] _wanderAngles = {-15, -10, 5, 0, 0, 5, 10, 15};
         [SerializeField] private float _hungerLimit = 30;
         [SerializeField] private Vector3 _targetPos;
- 
 
         [SerializeField] private Dictionary<Entity, float> _foodNear = new Dictionary<Entity, float>();
         [SerializeField] private Dictionary<Entity, float> _threatNear = new Dictionary<Entity, float>();
-        private Entity _food;
+        [SerializeField] private Entity _foodInSight;
+        [SerializeField] private Entity _foodInMemory;
+        [SerializeField] private static float _memoryTime = 5f;
+        private WaitForSeconds _wait = new WaitForSeconds(_memoryTime);
+        
+        [SerializeField] private bool _isEating;
+
 
         public void Init(Grid grid)
         { 
@@ -45,6 +56,10 @@ namespace FlatEarth
             _grid = grid;
             _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
             _oldNode = _currentNode;
+            
+            // Senses
+            _eyeSight = gameObject.AddComponent<Eyesight>();
+            _hearing = gameObject.AddComponent<Hearing>();
 
             // Add actions this entity can perform and assign priorities for actions
             _availableActions.Add(new WanderAction(1));
@@ -52,23 +67,27 @@ namespace FlatEarth
             _availableActions.Add(new FleeAction(3));
             
             // Init stats
-            // init stats
             _stats.hungerLimit = 30;
             _stats.walkSpeed = 0.04f;
             _stats.runSpeed = 0.06f;
             _stats.slowTurnSpeed = 1;
-            _stats.fastTurnSpeed = 3;
+            _stats.fastTurnSpeed = 180;
             _stats.maxHealth = 100;
-            _stats.sensingRadius = 3;
+            _stats.hearingDistance = 3;
+            _stats.visionAngle = 90;
+            _stats.visionDistance = 3;
         }
         
-        private void OnDrawGizmos()
+        private void OnDrawGizmosSelected()
         {
             Gizmos.color = Color.white;
-            Gizmos.DrawWireSphere(transform.position,_stats.sensingRadius);
+            Gizmos.DrawWireSphere(transform.position,_stats.hearingDistance);
             
             Gizmos.color = Color.blue;
-            Gizmos.DrawCube(_food.transform.position, Vector3.one);
+            if (_foodInSight != null)
+            {
+                Gizmos.DrawCube(_foodInSight.transform.position, Vector3.one);
+            }
         }
 
         public override EntityType GetEntityType()
@@ -84,7 +103,8 @@ namespace FlatEarth
         {
             _currentState.UpdateState("isHungry", _hunger > _hungerLimit);
             _currentState.UpdateState("isAfraid", _threatNear.Count > 0);
-            _currentState.UpdateState("sawFood", _food != null);
+            _currentState.UpdateState("sawFood", _foodInSight != null);
+            _currentState.UpdateState("isEating", _isEating);
            
             _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
             
@@ -95,14 +115,30 @@ namespace FlatEarth
                 _oldNode = _currentNode;
             }
             
-            // Sense nearby entities
-            _threatNear = EntityManager.FindEntityAround(transform.position, stats.sensingRadius, EntityType.WOLF);
-            _foodNear = EntityManager.FindEntityAround(transform.position, stats.sensingRadius, EntityType.GRASS);
+            // Listen for wolves
+            _threatNear = _hearing.DetectEntities(EntityType.WOLF, stats.hearingDistance);
+            
+            // Try to see food
+            _foodNear = _eyeSight.DetectEntities(EntityType.GRASS, stats.visionDistance, stats.visionAngle);
+            
+            // Focus on closest food      
             if (_foodNear.Count > 0)
             {
-                var ordered = _foodNear.OrderByDescending(x => x.Value).ToList();
-                _food = ordered[ordered.Count-1].Key;
+                _foodInSight = _foodNear.OrderByDescending(x => x.Value).ToList().Last().Key;
             }
+            
+            // Remember one food spot just in case we don't see any food
+            if (_foodInMemory == null)
+            {
+                _foodInMemory = _foodInSight;
+                StartCoroutine(ForgetFood());
+            }
+        }
+
+        IEnumerator ForgetFood()
+        {
+            yield return _wait;
+            _foodInSight = null;
         }
 
         public override void Think()
@@ -116,45 +152,8 @@ namespace FlatEarth
                 Debug.LogError("isHungry: " + _currentState.GetState("isHungry").ToString());
                 Debug.LogError("isAfraid: " + _currentState.GetState("isAfraid").ToString());
                 Debug.LogError("sawFood: " + _currentState.GetState("sawFood").ToString());
+                Debug.LogError("isEating: " + _currentState.GetState("isEating").ToString());
             }
-
-            /*
-            
-            // Default to wandering
-            _state = State.WANDERING;
-
-            // Priorities 
-            // 1. Run from danger
-            if(_threatNear.Count > 0)
-            {
-                // TODO find flee direction
-                _state = State.FLEEING;
-                return;
-            }
-            // 2. Look for food
-            if (_hunger > _hungerLimit)
-            {
-                
-                // Sort the dictionary to get the highest priority item
-                var ordered = _foodNear.OrderByDescending(x => x.Value).ToList();
-                if (ordered.Count > 0)
-                {
-                    var food = ordered[0].Key;
-                    _foodLocation = food.transform.position;
-                }
-                _state = State.LOOKING_FOR_FOOD;
-                return;
-            }
-            // 3. Reproduce
-            if (_health >= _maxHealth)
-            {
-                // TODO find where closest food is
-                _state = State.BREEDING;
-                return;
-            }
-            // 4. Wander
-            FindWanderTarget();
-            */
         }
 
         public override void Act()
@@ -165,7 +164,7 @@ namespace FlatEarth
             // If starving lose health otherwise get stronger
             if (_hunger > _maxHunger)
             {
-                // _health -= Time.deltaTime * _starveSpeed;
+                _health -= Time.deltaTime * _starveSpeed;
             }
             else
             {
@@ -177,28 +176,8 @@ namespace FlatEarth
             {
                 Die();
             }
-            
-            _currentAction.Act(this);
 
-            /*
-            switch (_state) 
-            {
-                case State.DEAD:
-                    break;
-                case State.LOOKING_FOR_FOOD:
-                    Eat();
-                    break;
-                case State.WANDERING:
-                    Wander();
-                    break;
-                case State.FLEEING:
-                    Flee();
-                    break;
-            }
-
-            Mathf.Clamp(transform.position.x, 0, 25);
-            Mathf.Clamp(transform.position.z, 0, 25);
-            */
+            _currentAction?.Act(this);
         }
 
         public override Dictionary<Entity, float> FindFood()
@@ -208,8 +187,10 @@ namespace FlatEarth
        
         public override void Flee()
         {
+           _isEating = false;
+            
           Quaternion lookAt = Quaternion.identity;
-          float maxTurningDelta = 10;
+          float maxTurningDelta = 45;
           var direction = Vector3.zero;
 
           foreach (var wolf in _threatNear)
@@ -241,6 +222,7 @@ namespace FlatEarth
 
         public override void Wander()
         {
+            _isEating = false;
             _targetPos = GetWanderPos();
             transform.position = Vector3.MoveTowards(transform.position, _targetPos, stats.walkSpeed);
         }
@@ -254,13 +236,13 @@ namespace FlatEarth
             { 
                 // We hit the end of the grid. Turn around
                 angle = 180;
-                maxTurningDelta = 180;
+                maxTurningDelta = stats.fastTurnSpeed;
             }
             else
             {
                 // Randomly turn left or right or continue straight
                 angle = _wanderAngles[Random.Range(0, _wanderAngles.Length)];
-                maxTurningDelta = 1;
+                maxTurningDelta = stats.slowTurnSpeed;
             }
 
             Quaternion rotateDir = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y + angle, transform.rotation.eulerAngles.z);
@@ -269,12 +251,31 @@ namespace FlatEarth
             return transform.position + transform.forward * 1;
         }
 
+        /// <summary>
+        /// Move to food location if entity has seen food or remember a good spot. Eat if on same tile as food, otherwise move to food location.
+        /// </summary>
         public override void Eat()
         {
-            if (_food == null)
+            if (_isEating)
+            {
+                return;
+            }
+            
+            Entity targetFood = null;
+            
+            if (_foodInSight == null && _foodInMemory == null)
             {
                 Wander();
                 return;
+            }
+
+            if (_foodInSight != null)
+            {
+                targetFood = _foodInSight;
+            }
+            else
+            {
+                targetFood = _foodInMemory;
             }
 
             Entity foodOnTile = null;
@@ -290,20 +291,32 @@ namespace FlatEarth
 
             if (foodOnTile != null)
             {
-                _hunger = 0;
-                EventManager.EventMessage message = new EventManager.EventMessage(foodOnTile.GetId());
-                EventManager.TriggerEvent("EntityDied", message);
+                _isEating = true;
+                StartCoroutine(StopEating(foodOnTile.GetId()));
             }
             else
             {
                 float maxTurningDelta = 15;
-                var _foodLocation = _food.transform.position;
-                Quaternion lookAt = Quaternion.LookRotation(_foodLocation - transform.position);
+                var foodLocation = targetFood.transform.position;
+                Quaternion lookAt = Quaternion.LookRotation(foodLocation - transform.position);
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
-                transform.position = Vector3.MoveTowards(transform.position, _foodLocation, stats.walkSpeed);
+                transform.position = Vector3.MoveTowards(transform.position, foodLocation, stats.walkSpeed);
             }
         }
 
+        IEnumerator StopEating(int id)
+        {
+            yield return new WaitForSeconds(2f);
+            _hunger = 0;
+            _isEating = false;
+            EventManager.EventMessage message = new EventManager.EventMessage(id);
+            EventManager.TriggerEvent("EntityDied", message);
+        }
+
+        /// <summary>
+        /// Check if this entity was eaten by other entity by comparing unique ID
+        /// </summary>
+        /// <param name="message"></param>
         private void Eaten(EventManager.EventMessage message)
         {
             if (_id == message.id)
@@ -311,6 +324,10 @@ namespace FlatEarth
                 Die();
             }
         }
+        
+        /// <summary>
+        /// Trigger event to remove entity if entity died
+        /// </summary>
 
         private void Die()
         {

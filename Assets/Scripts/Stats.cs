@@ -8,6 +8,8 @@
         public float slowTurnSpeed;
         public float fastTurnSpeed;
         public float maxHealth;
-        public float sensingRadius;
+        public float hearingDistance;
+        public float visionAngle;
+        public float visionDistance;
     }
 }

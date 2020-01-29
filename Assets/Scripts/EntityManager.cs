@@ -178,6 +178,12 @@ namespace FlatEarth
         {
             _wolfList.Remove(e);
         }
+        StartCoroutine(DestroyEntity(e));
+    }
+
+    IEnumerator DestroyEntity(Entity e)
+    {
+        yield return new WaitForEndOfFrame();
         Destroy(e.gameObject);
     }
 
@@ -197,37 +203,7 @@ namespace FlatEarth
             _wolfList.Add(e);
         }
     }
-    
-    public static Dictionary<Entity, float> FindWolvesAroundNode(Node node, float sensingRadius)
-    {
-        Dictionary<Entity, float> wolves = new Dictionary<Entity, float>();
-        if (node == null) return wolves;
-        foreach (var e in _wolfList)
-        {
-            float dist = Vector3.Distance(e.transform.position, node.GetNodeWorldPos());
-            if (dist < sensingRadius)
-            {
-                 wolves.Add(e,dist);
-             }
-        }
-        return wolves;
-    }
-    
-    public static Dictionary<Entity, float> FindGrassAroundNode(Node node, float sensingRadius)
-    {
-        Dictionary<Entity, float> grassList = new Dictionary<Entity, float>();
-        if (node == null) return grassList;
-        foreach (var e in _grassList)
-        {
-            float dist = Vector3.Distance(e.transform.position, node.GetNodeWorldPos());
-            if (dist < sensingRadius)
-            {
-                grassList.Add(e,dist);
-            }
-        }
-        return grassList;
-    }
-    
+
     public static Dictionary<Entity, float> FindEntityAround(Vector3 pos, float sensingRadius, Entity.EntityType type)
     {
         Dictionary<Entity, float> animals = new Dictionary<Entity, float>();

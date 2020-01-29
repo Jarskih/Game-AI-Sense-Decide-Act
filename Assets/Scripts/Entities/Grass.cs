@@ -9,10 +9,10 @@ namespace FlatEarth
         public Stats stats => _stats;
         
         [SerializeField] private float _growSpeed = 20f;
-        [SerializeField] private float _lifetimeAsMature = 30;
+        [SerializeField] private float _dieSpeed = 100f;
+        [SerializeField] private float _lifetimeAsMature = 60;
         [SerializeField] private float _spreadInterval = 5;
-        [SerializeField] private float _fullHealth = 100;
-        
+
         [SerializeField] private int _id;
         [SerializeField] private State _state;
         [SerializeField] private EntityType type = EntityType.GRASS;
@@ -40,6 +40,8 @@ namespace FlatEarth
             
             EventManager.StartListening("GrassEaten", Eaten);
             _grid = grid;
+            
+            _stats.maxHealth = 100;
         }
         
         public override EntityType GetEntityType()
@@ -118,6 +120,7 @@ namespace FlatEarth
             switch (_state)
             {
                 case State.DEAD:
+                    break;
                 case State.TRAMPLED:
                     break;
                 case State.GROWING:
@@ -156,7 +159,7 @@ namespace FlatEarth
                 _lifeTimeCounter += Time.deltaTime;
                 if (_lifeTimeCounter > _lifetimeAsMature)
                 {
-                    _health -= Time.deltaTime * _growSpeed;
+                    _health -= Time.deltaTime * _dieSpeed;
                 }
 
                 if (_health < 0)
@@ -167,7 +170,7 @@ namespace FlatEarth
             else
             {
                 _health += Time.deltaTime * _growSpeed;
-                if (_health > _fullHealth)
+                if (_health > stats.maxHealth)
                 {
                     _mature = true;
                 }
