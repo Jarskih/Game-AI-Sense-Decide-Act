@@ -60,7 +60,7 @@ namespace FlatEarth
             _oldNode = _currentNode;
             
             // GOAP actions
-            gameObject.AddComponent<WanderAction>();
+          //  gameObject.AddComponent<WanderAction>();
             gameObject.AddComponent<EatFoodAction>();
             _agent = gameObject.AddComponent<GoapAgent>();
         }
@@ -103,6 +103,14 @@ namespace FlatEarth
                 _currentNode.AddEntity(this);
                 _oldNode.RemoveEntity(this);
                 _oldNode = _currentNode;
+            }
+            
+            _foodNear = EntityManager.FindEntityAround(transform.position, _sensingRadius, EntityType.SHEEP);
+            if (_foodNear == null)
+            {
+                Dictionary<Entity, float> _foodNear = EntityManager.FindEntityAround(transform.position, _sensingRadius, EntityType.SHEEP);
+                var ordered = _foodNear.OrderByDescending(x => x.Value).ToList();
+                _prey = ordered[0].Key;
             }
         }
 
@@ -158,15 +166,9 @@ namespace FlatEarth
             Mathf.Clamp(transform.position.z, 0, 25);
         }
 
-        public override Entity FindFood()
+        public override Dictionary<Entity, float> FindFood()
         {
-            _foodNear = EntityManager.FindEntityAround(transform.position, _sensingRadius, EntityType.SHEEP);
-            if (_foodNear.Count > 0)
-            {
-                var ordered = _foodNear.OrderByDescending(x => x.Value).ToList();
-                return ordered[0].Key;
-            }
-            return null;
+            return _foodNear;
         }
 
         private void Flee()
@@ -242,8 +244,8 @@ namespace FlatEarth
         public override HashSet<KeyValuePair<string, object>> getWorldState()
         {
             HashSet<KeyValuePair<string,object>> worldData = new HashSet<KeyValuePair<string,object>> ();
-            worldData.Add(new KeyValuePair<string, object>("isHungry", (base._hunger > _hungerLimit) ));
-            // worldData.Add(new KeyValuePair<string, object>("isScared", false));
+            worldData.Add(new KeyValuePair<string, object>("isHungry", (_hunger > _hungerLimit) ));
+          // worldData.Add(new KeyValuePair<string, object>("isScared", false));
           //  worldData.Add(new KeyValuePair<string, object>("isIdle", _hunger < _hungerLimit));
             return worldData;
         }
@@ -252,7 +254,6 @@ namespace FlatEarth
             HashSet<KeyValuePair<string, object>> goal = new HashSet<KeyValuePair<string, object>>
             {
                 new KeyValuePair<string, object>("isHungry", false),
-                new KeyValuePair<string, object>("foundFood", false),
             };
 
             return goal;

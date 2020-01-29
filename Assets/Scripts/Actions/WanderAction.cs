@@ -1,45 +1,63 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
+using FlatEarth;
 using UnityEngine;
 
 namespace FlatEarth
 {
 public class WanderAction : GoapAction
 {
+    private Vector3 _wanderTarget = Vector3.zero;
     private Entity _target;
     private float _counter;
     private double _actionDuration;
 
     public WanderAction()
     {
-        addEffect("foundFood", true);
-        cost = 1;
+        addPrecondition("isHungry", false);
+        addEffect("eat", true);
+        cost = 3;
     }
     
     protected override void reset()
     {
+        _wanderTarget = Vector3.zero;
         targetPos = Vector3.zero;
     }
 
     public override bool isDone()
     {
-        return targetPos != Vector3.zero;
+        return _target != null;
     }
 
     public override bool checkProceduralPrecondition(GameObject agent)
     {
-        var food = agent.GetComponent<Entity>().FindFood();
+        Vector3 pos = agent.GetComponent<Entity>().GetWanderPos();
 
-        if (food != null)
+        if (pos != Vector3.zero)
         {
-            target = food.gameObject;
+            targetPos = pos;
+            _wanderTarget = pos;
             return true;
         }
+
         return false;
     }
 
     public override bool perform(GameObject agent)
     {
+        Dictionary<Entity, float> entityNear = agent.GetComponent<Entity>().FindFood();
+        if (entityNear != null)
+        {
+            // Sort the dictionary to get the highest priority item
+            var ordered = entityNear.OrderByDescending(x => x.Value).ToList();
+            if (ordered.Count > 0)
+            {
+                var entity = ordered[0].Key;
+                _target = entity;
+            }
+        }
         return true;
     }
 

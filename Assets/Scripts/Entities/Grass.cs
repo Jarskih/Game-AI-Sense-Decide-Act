@@ -130,7 +130,7 @@ namespace FlatEarth
             }
         }
 
-        public override Entity FindFood()
+        public override Dictionary<Entity, float> FindFood()
         {
             return null;
         }

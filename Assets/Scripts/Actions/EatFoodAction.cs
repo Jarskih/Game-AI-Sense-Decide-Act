@@ -10,16 +10,14 @@ namespace FlatEarth
     {
         private bool _ateFood = false;
         private float _counter = 0;
-        private float _actionDuration = 0.2f; // seconds
+        private float _actionDuration = 2; // seconds
         private Entity _targetFood;
 
         public EatFoodAction()
         {
             addPrecondition("isHungry", true);
-            addPrecondition("foundFood", true);
-            addEffect("foundFood", false);
             addEffect("isHungry",false);
-            cost = 1;
+            cost = 2;
         }
 
         protected override void reset()
@@ -35,6 +33,19 @@ namespace FlatEarth
 
         public override bool checkProceduralPrecondition(GameObject agent)
         {
+            Dictionary<Entity, float> entityNear = agent.GetComponent<Entity>().FindFood();
+            if (entityNear != null)
+            {
+                // Sort the dictionary to get the highest priority item
+                var ordered = entityNear.OrderByDescending(x => x.Value).ToList();
+                if (ordered.Count > 0)
+                {
+                    var entity = ordered[0].Key;
+                    base.target = entity.gameObject;
+                    _targetFood = entity;
+                    return true;
+                }
+            }
             return false;
         }
 

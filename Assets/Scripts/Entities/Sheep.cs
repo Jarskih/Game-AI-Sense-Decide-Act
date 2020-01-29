@@ -66,7 +66,7 @@ namespace FlatEarth
             _oldNode = _currentNode;
 
             // GOAP actions
-             gameObject.AddComponent<WanderAction>();
+       //     gameObject.AddComponent<WanderAction>();
             gameObject.AddComponent<EatFoodAction>();
             _agent = gameObject.AddComponent<GoapAgent>();
         }
@@ -177,15 +177,9 @@ namespace FlatEarth
             Mathf.Clamp(transform.position.z, 0, 25);
         }
 
-        public override Entity FindFood()
+        public override Dictionary<Entity, float> FindFood()
         {
-            _foodNear = EntityManager.FindEntityAround(transform.position, _sensingRadius, EntityType.GRASS);
-            if (_foodNear.Count > 0)
-            {
-                var ordered = _foodNear.OrderByDescending(x => x.Value).ToList();
-                return ordered[0].Key;
-            }
-            return null;
+            return _foodNear;
         }
         
         private void Flee()
@@ -298,39 +292,35 @@ namespace FlatEarth
         }
 
         // GOAP
-
-        public override HashSet<KeyValuePair<string, object>> createGoalState()
-        {
+        
+        public override HashSet<KeyValuePair<string,object>> createGoalState () {
             HashSet<KeyValuePair<string, object>> goal = new HashSet<KeyValuePair<string, object>>
             {
                 new KeyValuePair<string, object>("isHungry", false),
-                new KeyValuePair<string, object>("foundFood", false),
-                //    new KeyValuePair<string, object>("breed", true),
-                //    new KeyValuePair<string, object>("flee", true),
-                //    new KeyValuePair<string, object>("idle", true)
+            //    new KeyValuePair<string, object>("breed", true),
+            //    new KeyValuePair<string, object>("flee", true),
+            //    new KeyValuePair<string, object>("idle", true)
             };
 
             return goal;
         }
+
         public override bool moveAgent(GoapAction nextAction)
         {
-            if (nextAction.target == null)
-            {
-                Wander();
-                return false;
-            }
-
+            // move towards the NextAction's target
+            float maxTurningDelta = 15;
+            var pos = transform.position;
+            var wanderPos = GetWanderPos();
+            Quaternion lookAt = Quaternion.LookRotation(wanderPos - pos);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
+            transform.position = Vector3.MoveTowards(pos, wanderPos, _walkSpeed);
+		
             if (Vector3.Distance(gameObject.transform.position,nextAction.target.transform.position) < 0.1f) {
                 // we are at the target location, we are done
                 nextAction.setInRange(true);
                 return true;
             }
 
-            float maxTurningDelta = 15;
-            _foodLocation = nextAction.target.transform.position;
-            Quaternion lookAt = Quaternion.LookRotation(_foodLocation - transform.position);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
-            transform.position = Vector3.MoveTowards(transform.position, _foodLocation, _runSpeed);
             return false;
         }
 
