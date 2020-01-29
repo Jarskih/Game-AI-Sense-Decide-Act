@@ -1,19 +1,25 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
 using UnityEngine;
 
 namespace FlatEarth
 {
-    public abstract class Entity : MonoBehaviour, IGoap
+    public abstract class Entity : MonoBehaviour
     {
-        [SerializeField] protected float _maxHunger = 100;
-        [SerializeField] protected float _hunger = 0;
-
         public enum EntityType
         {
             SHEEP,
             WOLF,
             GRASS
         }
+        protected CurrentState _currentState = new CurrentState();
+        protected Action _currentAction;
+
+        protected Vector3 _targetPos;
+        public Vector3 targetPos => _targetPos;
+
+        protected List<Action> _availableActions = new List<Action>();
 
         public abstract EntityType GetEntityType();
         public abstract int GetId();
@@ -21,45 +27,25 @@ namespace FlatEarth
         public abstract void Think();
         public abstract void Act();
         public abstract Dictionary<Entity, float> FindFood();
-        
-        // GOAP
-
-        public abstract HashSet<KeyValuePair<string, object>> getWorldState();
-
-        public abstract HashSet<KeyValuePair<string, object>> createGoalState();
-
-        public void planFailed(HashSet<KeyValuePair<string, object>> failedGoal)
+        public abstract void Eat();
+        public abstract void Flee();
+        public abstract void Wander();
+        protected Action FindBestAction(CurrentState currentState)
         {
-            // TODO handle failed plans
-        }
-
-        public void planFound(HashSet<KeyValuePair<string, object>> goal, Queue<GoapAction> actions)
-        {
-            // Yay we found a plan for our goal
-            Debug.Log ("<color=green>Plan found</color> "+GoapAgent.prettyPrint(actions));
-        }
-
-        public void actionsFinished()
-        {
-            // Everything is done, we completed our actions for this gool. Hooray!
-            Debug.Log ("<color=blue>Actions completed</color>");
-        }
-
-        public void planAborted(GoapAction aborter)
-        {
-            // An action bailed out of the plan. State has been reset to plan again.
-            // Take note of what happened and make sure if you run the same goal again
-            // that it can succeed.
-            Debug.Log ("<color=red>Plan Aborted</color> "+GoapAgent.prettyPrint(aborter));
-        }
-
-        public abstract bool moveAgent(GoapAction nextAction);
-
-        public abstract Vector3 GetWanderPos();
-
-        public void RemoveHunger()
-        {
-            _hunger = 0;
+            Dictionary<Action, int> actions = new Dictionary<Action, int>();
+            foreach (var action in _availableActions)
+            {
+                if (action.CanDoAction(currentState))
+                {
+                    actions.Add(action, action.priority);
+                }
+            }
+            var sorted = actions.OrderByDescending(x => x.Value).ToList();
+            if (sorted.Count > 0)
+            {
+                return sorted[0].Key;
+            }
+            return null;
         }
     }
 }

@@ -143,6 +143,8 @@ namespace FlatEarth
 
         e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Grass);
         e.GetComponent<Grass>().Init(_grid);
+        
+        message.node.AddEntity(e.GetComponent<Entity>());
             
         _newEntities.Add(e.GetComponent<Entity>());
     }
@@ -154,6 +156,7 @@ namespace FlatEarth
         {
             if (e.GetId() == message.id)
             {
+                Debug.Log("Entity died");
                 _removedEntities.Add(e.GetComponent<Entity>()); ;
                 break;
             }
