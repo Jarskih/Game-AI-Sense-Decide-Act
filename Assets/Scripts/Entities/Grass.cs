@@ -230,6 +230,7 @@ namespace FlatEarth
         {
             _health = 0;
             _state = State.DEAD;
+            _currentNode.RemoveEntity(this);
             EventManager.EventMessage message = new EventManager.EventMessage(_id);
             EventManager.TriggerEvent("EntityDied", message);
         }

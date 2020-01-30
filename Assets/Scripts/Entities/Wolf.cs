@@ -60,12 +60,12 @@ namespace FlatEarth
             
             // init stats
             _stats.hungerLimit = 70;
-            _stats.walkSpeed = 0.01f;
-            _stats.runSpeed = 0.05f;
+            _stats.walkSpeed = 0.02f;
+            _stats.runSpeed = 0.08f;
             _stats.slowTurnSpeed = 1;
             _stats.fastTurnSpeed = 180;
             _stats.maxHealth = 100;
-            _stats.hearingDistance = 3;
+            _stats.hearingDistance = 7;
             _stats.visionAngle = 90;
             _stats.visionDistance = 5;
         }
@@ -216,6 +216,7 @@ namespace FlatEarth
         private void Die()
         {
             _health = 0;
+            _currentNode.RemoveEntity(this);
             EventManager.EventMessage message = new EventManager.EventMessage(_id);
             EventManager.TriggerEvent("EntityDied", message);
         }
