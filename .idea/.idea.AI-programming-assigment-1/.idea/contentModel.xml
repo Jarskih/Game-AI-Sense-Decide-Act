@@ -13,6 +13,10 @@
             <e p="WanderAction.cs" t="Include" />
           </e>
           <e p="CurrentState.cs" t="Include" />
+          <e p="ECS" t="Include">
+            <e p="FlockingComponent.cs" t="Include" />
+            <e p="FlockingSystem.cs" t="Include" />
+          </e>
           <e p="Entities" t="Include">
             <e p="Bird.cs" t="Include" />
             <e p="Entity.cs" t="Include" />
@@ -23,6 +27,7 @@
           <e p="EntityManager.cs" t="Include" />
           <e p="EventManager.cs" t="Include" />
           <e p="Flocking.cs" t="Include" />
+          <e p="FlockingECS.cs" t="Include" />
           <e p="FlockingSettings.cs" t="Include" />
           <e p="Grid" t="Include">
             <e p="Grid.cs" t="Include" />

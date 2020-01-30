@@ -5,13 +5,23 @@
     <explicitIncludes>
       <Path>Library/PackageCache/com.unity.ads@2.0.8</Path>
       <Path>Library/PackageCache/com.unity.analytics@3.3.2</Path>
+      <Path>Library/PackageCache/com.unity.burst@1.1.2</Path>
       <Path>Library/PackageCache/com.unity.collab-proxy@1.2.16</Path>
+      <Path>Library/PackageCache/com.unity.collections@0.1.1-preview</Path>
+      <Path>Library/PackageCache/com.unity.entities@0.1.1-preview</Path>
+      <Path>Library/PackageCache/com.unity.jobs@0.1.1-preview</Path>
+      <Path>Library/PackageCache/com.unity.mathematics@1.1.0</Path>
       <Path>Library/PackageCache/com.unity.postprocessing@2.1.4</Path>
+      <Path>Library/PackageCache/com.unity.progrids@3.0.3-preview.4</Path>
+      <Path>Library/PackageCache/com.unity.properties@0.6.2-preview</Path>
       <Path>Library/PackageCache/com.unity.purchasing@2.0.6</Path>
       <Path>Library/PackageCache/com.unity.render-pipelines.core@5.7.2</Path>
       <Path>Library/PackageCache/com.unity.render-pipelines.lightweight@5.7.2</Path>
+      <Path>Library/PackageCache/com.unity.rendering.hybrid@0.1.1-preview</Path>
       <Path>Library/PackageCache/com.unity.shadergraph@5.7.2</Path>
+      <Path>Library/PackageCache/com.unity.test-framework.performance@1.0.9-preview</Path>
       <Path>Library/PackageCache/com.unity.textmeshpro@2.0.1</Path>
+      <Path>Library/PackageCache/nuget.mono-cecil@0.1.6-preview</Path>
       <Path>Packages</Path>
       <Path>ProjectSettings</Path>
     </explicitIncludes>

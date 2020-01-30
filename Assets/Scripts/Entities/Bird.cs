@@ -9,11 +9,9 @@ namespace FlatEarth
 public class Bird : MonoBehaviour
 {
     private Quaternion lookDir;
-
     private Vector3 _targetDir;
-
     public FlockingSettings _settings;
-
+    private int _pointsOnSphere = 300;
 
     // State
     [HideInInspector]
@@ -51,7 +49,7 @@ public class Bird : MonoBehaviour
         velocity = transform.forward * startSpeed;
         
         // Calculate all points on the sphere
-        _points = PointsOnSphere(300);
+        _points = PointsOnSphere(_pointsOnSphere);
     }
     
     private void OnDrawGizmos()
@@ -144,6 +142,11 @@ public class Bird : MonoBehaviour
         return forward;
     }
 
+    /// <summary>
+    /// Calculates points on a sphere using golden spiral method https://stackoverflow.com/questions/9600801/evenly-distributing-n-points-on-a-sphere/44164075#44164075
+    /// </summary>
+    /// <param name="numberOfPoints"></param>
+    /// <returns>Vector3[]</returns>
     Vector3[]  PointsOnSphere(int numberOfPoints)
     {
         float phi = (1 + Mathf.Sqrt (5)) / 2;
