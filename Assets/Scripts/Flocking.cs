@@ -9,7 +9,7 @@ namespace FlatEarth
     { 
         private FlockingSettings _settings;
         private List<Bird> _birds = new List<Bird>();
-        private int numberOfBirds = 100;
+        private int numberOfBirds = 50;
         private float spawnRadius = 5;
 
         // Start is called before the first frame update

@@ -71,15 +71,11 @@ namespace FlatEarth
             wolfContainer = new GameObject("WolfContainer");
             for (int i = 0; i < _startingWolfs; i++)
             {
-                GameObject e = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                GameObject e = Instantiate(Resources.Load<GameObject>("Prefabs/Wolf"));
                 e.name = "Wolf " + i;
                 e.AddComponent<Wolf>();
-                
                 e.transform.SetParent(wolfContainer.transform);
-                e.transform.localScale = new Vector3(0.25f, 0.7f, 0.8f);
-                e.transform.position = _grid.GetRandomNodePos();
 
-                e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Wolf);
                 AddEntity(e.GetComponent<Entity>());
                 e.GetComponent<Wolf>().Init(_grid);
             }
@@ -87,15 +83,12 @@ namespace FlatEarth
             sheepContainer = new GameObject("SheepContainer");
             for (int i = 0; i < _startingSheep; i++)
             {
-                GameObject e = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                GameObject e = Instantiate(Resources.Load<GameObject>("Prefabs/Sheep"));
                 e.name = "Sheep " + i;
                 e.AddComponent<Sheep>();
                 
                 e.transform.SetParent(sheepContainer.transform);
-                e.transform.localScale = new Vector3(0.25f, 0.5f, 0.5f);
-                e.transform.position = _grid.GetRandomNodePos();
 
-                e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Sheep);
                 AddEntity(e.GetComponent<Entity>());
                 e.GetComponent<Sheep>().Init(_grid);
             }
@@ -109,8 +102,6 @@ namespace FlatEarth
                 
                 e.transform.SetParent(grassContainer.transform);
                 e.transform.localScale = new Vector3(0.0f, 0.1f, 0.0f);
-                e.transform.position = _grid.GetRandomNodePos();
-
 
                 e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Grass);
                 AddEntity(e.GetComponent<Entity>());

@@ -40,6 +40,7 @@ namespace FlatEarth
             
             EventManager.StartListening("GrassEaten", Eaten);
             _grid = grid;
+            transform.position = _grid.GetRandomNodePos();
             
             _stats.maxHealth = 100;
         }

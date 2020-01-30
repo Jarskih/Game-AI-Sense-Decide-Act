@@ -54,6 +54,7 @@ namespace FlatEarth
 
             _id = gameObject.GetInstanceID();
             _grid = grid;
+            transform.position = _grid.GetRandomNodePos();
             _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
             _oldNode = _currentNode;
             
@@ -68,8 +69,8 @@ namespace FlatEarth
             
             // Init stats
             _stats.hungerLimit = 30;
-            _stats.walkSpeed = 0.04f;
-            _stats.runSpeed = 0.06f;
+            _stats.walkSpeed = 0.01f;
+            _stats.runSpeed = 0.05f;
             _stats.slowTurnSpeed = 1;
             _stats.fastTurnSpeed = 180;
             _stats.maxHealth = 100;

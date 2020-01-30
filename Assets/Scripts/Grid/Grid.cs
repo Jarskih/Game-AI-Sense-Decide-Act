@@ -158,12 +158,10 @@ namespace FlatEarth
             {
                 return false;
             }
-
             if (pX > _gridSizeX - 1 || pY > _gridSizeY-1 || pZ > _gridSizeZ-1)
             {
                 return false;
             }
-
             return true;
         }
         
