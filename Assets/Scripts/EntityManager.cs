@@ -156,7 +156,7 @@ namespace FlatEarth
         {
             if (e.GetId() == message.id)
             {
-                Debug.Log("Entity died");
+              //  Debug.Log("Entity died");
                 _removedEntities.Add(e.GetComponent<Entity>()); ;
                 break;
             }

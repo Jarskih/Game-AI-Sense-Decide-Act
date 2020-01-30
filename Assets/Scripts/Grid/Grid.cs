@@ -149,7 +149,7 @@ namespace FlatEarth
             quad.transform.SetParent(parent.transform);
             quad.transform.position = pos;
             quad.transform.rotation = Quaternion.Euler(90, 0, 0);
-            quad.transform.localScale = new Vector3(0.95f, 0.95f, 0.95f);
+            quad.transform.localScale = new Vector3(0.98f, 0.98f, 0.98f);
             return quad;
         }
         private bool IsValidPos(int pX, int pY, int pZ)
