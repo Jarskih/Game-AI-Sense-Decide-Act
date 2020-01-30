@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2161312377960193812}
   - component: {fileID: 2161312377960193813}
-  - component: {fileID: 2161312377960193814}
   m_Layer: 0
   m_Name: Bird
   m_TagString: Untagged
@@ -45,31 +44,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd16b0da9ff7fe64aafa0f8543b061a8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  perceptionRadius: 2.5
-  avoidanceRadius: 1
+  _settings: {fileID: 0}
   position: {x: 0, y: 0, z: 0}
   forward: {x: 0, y: 0, z: 0}
   avgFlockHeading: {x: 0, y: 0, z: 0}
   avgAvoidanceHeading: {x: 0, y: 0, z: 0}
   centreOfFlockmates: {x: 0, y: 0, z: 0}
-  cachedTransform: {fileID: 0}
-  numFlockmates: 0
-  flockHeading: {x: 0, y: 0, z: 0}
-  flockCentre: {x: 0, y: 0, z: 0}
-  separationHeading: {x: 0, y: 0, z: 0}
---- !u!65 &2161312377960193814
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2161312377960193800}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Size: {x: 0.5, y: 0.5, z: 0.5}
-  m_Center: {x: 0, y: 0, z: 0}
+  numPerceivedFlockmates: 0
 --- !u!1001 &5414193063384518838
 PrefabInstance:
   m_ObjectHideFlags: 0

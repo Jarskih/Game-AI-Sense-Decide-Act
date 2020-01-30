@@ -5,10 +5,11 @@ using UnityEngine;
 namespace FlatEarth
 {
     public class Flocking : MonoBehaviour
-{
+    { 
+        public FlockingSettings settings;
     [SerializeField] private List<Bird> _birds;
-    private int numberOfBirds = 50;
-    private float spawnRadius = 2;
+    private int numberOfBirds = 100;
+    private float spawnRadius = 5;
 
         // Start is called before the first frame update
     void Start()
@@ -18,8 +19,7 @@ namespace FlatEarth
             Vector3 pos = transform.position + UnityEngine.Random.insideUnitSphere * spawnRadius;
             GameObject b = Instantiate(Resources.Load<GameObject>("Prefabs/Bird"), pos, Quaternion.identity);
             b.transform.forward = UnityEngine.Random.insideUnitSphere;
-            b.GetComponent<Bird>().settings = Resources.Load<BoidSettings>("Data/Settings");
-            b.GetComponent<Bird>().Initialize();
+            b.GetComponent<Bird>().Initialize(settings);
             _birds.Add(b.GetComponent<Bird>());
 
         }
@@ -43,13 +43,13 @@ namespace FlatEarth
                 Vector3 offset = birdInFlock.transform.position - bird.transform.position;
                 float sqrDst = offset.x * offset.x + offset.y * offset.y + offset.z * offset.z;
 
-                if (sqrDst < bird.settings.perceptionRadius * bird.settings.avoidanceRadius)
+                if (sqrDst < settings.perceptionRadius * settings.avoidanceRadius)
                 {
                     avgFlockHeading  += birdInFlock.transform.forward;
                     centreOfFlock += birdInFlock.transform.position;
                     numFlockmates += 1;
                     
-                    if (sqrDst < bird.settings.avoidanceRadius * bird.settings.avoidanceRadius)
+                    if (sqrDst < settings.avoidanceRadius * settings.avoidanceRadius)
                     {
                         avgAvoidanceHeading -= offset / sqrDst;
                     }

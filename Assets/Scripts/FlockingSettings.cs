@@ -6,7 +6,7 @@ namespace FlatEarth
 {
 
     [CreateAssetMenu]
-public class BoidSettings : ScriptableObject {
+    public class FlockingSettings : ScriptableObject {
     // Settings
     public float minSpeed = 2;
     public float maxSpeed = 5;
