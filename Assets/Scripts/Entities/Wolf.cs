@@ -35,7 +35,6 @@ namespace FlatEarth
         
         // Wandering
         private readonly int[] _wanderAngles = {-15, -10, 5, 0, 0, 5, 10, 15};
-        [SerializeField] private Vector3 _targetPos;
 
         [SerializeField] private Entity _foodInSight;
         [SerializeField] private Entity _foodInMemory;
@@ -196,8 +195,8 @@ namespace FlatEarth
             }
 
             targetFood = _foodInSight == null ? _foodInMemory : _foodInSight;
-            
-            if (Vector3.Distance(transform.position, _foodInSight.transform.position) < 0.5f)
+
+            if (Vector3.Distance(transform.position, targetFood.transform.position) < 0.5f)
             {
                 _hunger = 0;
                 EventManager.EventMessage message = new EventManager.EventMessage(_foodInSight.GetId());

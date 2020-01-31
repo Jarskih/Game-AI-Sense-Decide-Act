@@ -1,121 +1,138 @@
 ﻿using System;
 using System.Collections.Generic;
+using Unity.Burst;
+using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
+using Unity.Jobs;
+using Unity.Jobs.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Jobs;
 
 namespace FlatEarth
 {
     public class FlockingECS : MonoBehaviour
-    { 
+    {
         public FlockingSettings settings;
-    [SerializeField] private List<Bird> _birds;
-    private int numberOfBirds = 100;
-    private float spawnRadius = 5;
-    private int _pointsOnSphere = 300;
+        [SerializeField] private List<Bird> _birds = new List<Bird>();
+        private int numberOfBirds = 50;
+        private float spawnRadius = 5;
+        private int _pointsOnSphere = 300;
 
-    [SerializeField] private GameObject srcGameObject;
+        [SerializeField] private GameObject srcGameObject;
+        
+        private NativeArray<float3> positions;
+        private NativeArray<float3> avgFlockHeading;
+        private NativeArray<float3> centreOfFlock;
+        private NativeArray<float3> avgAvoidanceHeading;
+        private NativeArray<int> numFlockmates;
+        private NativeList<JobHandle> jobHandles;
 
-    // Start is called before the first frame update
-    void Start()
-    {
-        for (int i = 0; i < numberOfBirds; i++)
+        // Start is called before the first frame update
+        void Start()
         {
-            Vector3 pos = transform.position + UnityEngine.Random.insideUnitSphere * spawnRadius;
-            GameObject b = EntityManager.Instantiate(Resources.Load<GameObject>("Prefabs/Bird"), transform.position, Quaternion.identity);
-            b.transform.forward = UnityEngine.Random.insideUnitSphere;
-            b.GetComponent<Bird>().Initialize(settings);
-            _birds.Add(b.GetComponent<Bird>());
-        }
-
-        Unity.Entities.EntityManager entityManager = Unity.Entities.World.Active.EntityManager;
-
-        int id = 0;
-        float startSpeed = (settings.minSpeed + settings.maxSpeed) / 2;
-        foreach (var e in entityManager.GetAllEntities())
-        {
-            id++;
-            entityManager.AddComponent<FlockingComponent>(e);
-            entityManager.AddComponent<Bird>(e);
-            entityManager.SetComponentData(e, new FlockingComponent
+            for (int i = 0; i < numberOfBirds; i++)
             {
-                id = id,
-                perceptionRadius = settings.perceptionRadius,
-                avoidanceRadius = settings.avoidanceRadius,
-                numPerceivedFlockmates = 0,
-                velocity = transform.forward * startSpeed,
-                points = PointsOnSphere(_pointsOnSphere)
-            });
+                Vector3 pos = transform.position + UnityEngine.Random.insideUnitSphere * spawnRadius;
+                GameObject b = Instantiate(Resources.Load<GameObject>("Prefabs/Bird"), pos,
+                    Quaternion.identity);
+                b.transform.forward = UnityEngine.Random.insideUnitSphere;
+                b.GetComponent<Bird>().Initialize(settings);
+                _birds.Add(b.GetComponent<Bird>());
+            }
+            
+
         }
-    }
-    
-    /// <summary>
-    /// Calculates points on a sphere using golden spiral method https://stackoverflow.com/questions/9600801/evenly-distributing-n-points-on-a-sphere/44164075#44164075
-    /// </summary>
-    /// <param name="numberOfPoints"></param>
-    /// <returns>Vector3[]</returns>
-    float3[]  PointsOnSphere(int numberOfPoints)
-    {
-        float phi = (1 + Mathf.Sqrt (5)) / 2;
-        float angleIncrement = Mathf.PI * 2 * phi;
 
-        var points = new float3[numberOfPoints];
-
-        for (int i = 0; i < numberOfPoints; i++)
+        void Update()
         {
-            float t = (float) i / numberOfPoints;
-            float inclination = Mathf.Acos (1 - 2 * t);
-            float azimuth = angleIncrement * i;
-
-            float x = Mathf.Sin (inclination) * Mathf.Cos (azimuth);
-            float y = Mathf.Sin (inclination) * Mathf.Sin (azimuth);
-            float z = Mathf.Cos (inclination);
-            points[i] = new Vector3 (x, y, z);
-        }
-        return points;
-    }
-
-    // Update is called once per frame
-   
-    /*
-    void Update()
-    {
-        foreach (var bird in _birds)
-        {
-            bird.UpdateBoid();
-            Vector3 avgFlockHeading = Vector3.zero;
-            Vector3 centreOfFlock = Vector3.zero;
-            int numFlockmates = 0;
-            Vector3 avgAvoidanceHeading = Vector3.zero;
-            foreach (var birdInFlock in _birds)
+            jobHandles = new NativeList<JobHandle>(Allocator.TempJob);
+            positions = new NativeArray<float3>(_birds.Count, Allocator.TempJob);
+            avgFlockHeading = new NativeArray<float3>(_birds.Count, Allocator.TempJob);
+            centreOfFlock = new NativeArray<float3>(_birds.Count, Allocator.TempJob);
+            avgAvoidanceHeading = new NativeArray<float3>(_birds.Count, Allocator.TempJob);
+            numFlockmates = new NativeArray<int>(_birds.Count, Allocator.TempJob);
+            for(var b = 0; b < _birds.Count; b++)
             {
-                if (birdInFlock == bird)
-                {
-                    continue;
-                }
-                Vector3 offset = birdInFlock.transform.position - bird.transform.position;
-                float sqrDst = offset.x * offset.x + offset.y * offset.y + offset.z * offset.z;
+                positions[b] = _birds[b].transform.position;
+            }
 
-                if (sqrDst < settings.perceptionRadius * settings.avoidanceRadius)
+            for (int i = 0; i < _birds.Count; i++)
+            {
+                TestJob test = new TestJob
                 {
-                    avgFlockHeading  += birdInFlock.forward;
-                    centreOfFlock += birdInFlock.position;
-                    numFlockmates += 1;
-                    
-                    if (sqrDst < settings.avoidanceRadius * settings.avoidanceRadius)
+                    numberOfBirds = _birds.Count,
+                    perceptionRadius = 2.5f,
+                    avoidanceRadius = 1,
+                    positions = positions,
+                    avgFlockHeadingWrite = avgFlockHeading,
+                    centreOfFlockWrite = centreOfFlock,
+                    avgAvoidanceHeadingWrite = avgAvoidanceHeading,
+                    numFlockmatesWrite = numFlockmates,
+                };
+
+                JobHandle jobHandle = test.Schedule(_birds.Count, 50);
+                jobHandles.Add(jobHandle);
+            }
+
+            JobHandle.CompleteAll(jobHandles);
+
+            for (int i = 0; i < _birds.Count; i++)
+            {
+                _birds[i].avgFlockHeading = avgFlockHeading[i];
+                _birds[i].centreOfFlockmates = centreOfFlock[i];
+                _birds[i].avgAvoidanceHeading = avgAvoidanceHeading[i];
+                _birds[i].numPerceivedFlockmates = numFlockmates[i];
+                _birds[i].UpdateBoid();
+            }
+
+            jobHandles.Dispose();
+            positions.Dispose();
+            avgFlockHeading.Dispose();
+            centreOfFlock.Dispose();
+            avgAvoidanceHeading.Dispose();
+            numFlockmates.Dispose();
+        }
+
+        [BurstCompile]
+        private struct TestJob : IJobParallelFor
+        {
+            // Updated
+            [NativeDisableContainerSafetyRestriction] public NativeArray<float3> avgFlockHeadingWrite;
+            [NativeDisableContainerSafetyRestriction] public NativeArray<float3> centreOfFlockWrite;
+            [NativeDisableContainerSafetyRestriction] public NativeArray<float3> avgAvoidanceHeadingWrite;
+            [NativeDisableContainerSafetyRestriction] public NativeArray<int> numFlockmatesWrite;
+            // Static
+            [ReadOnly] public int numberOfBirds;
+            [ReadOnly] public NativeArray<float3> positions;
+            [ReadOnly] public float perceptionRadius;
+            [ReadOnly] public float avoidanceRadius;
+
+            public void Execute(int index)
+            {
+                for (int i = 0; i < numberOfBirds; i++)
+                {
+                    if (i == index)
                     {
-                        avgAvoidanceHeading -= offset / sqrDst;
+                        continue;
+                    }
+
+                    float3 offset = positions[i] - positions[index];
+                    float sqrDst = offset.x * offset.x + offset.y * offset.y + offset.z * offset.z;
+
+                    if (sqrDst < perceptionRadius * avoidanceRadius)
+                    {
+                        avgFlockHeadingWrite[index] += positions[i];
+                        centreOfFlockWrite[index] += positions[i];
+                        numFlockmatesWrite[index] += 1;
+
+                        if (sqrDst < avoidanceRadius * avoidanceRadius)
+                        {
+                            avgAvoidanceHeadingWrite[index] -= offset / sqrDst;
+                        }
                     }
                 }
             }
-
-            bird.avgFlockHeading = avgFlockHeading;
-            bird.centreOfFlockmates = centreOfFlock;
-            bird.avgAvoidanceHeading = avgAvoidanceHeading;
-            bird.numPerceivedFlockmates = numFlockmates;
-            
-            bird.UpdateBoid();
         }
     }
-*/
-}
 }

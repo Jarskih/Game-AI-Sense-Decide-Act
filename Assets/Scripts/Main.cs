@@ -13,7 +13,8 @@ namespace FlatEarth
         private readonly int _startingSheep = 50;
         private readonly int _startingGrass = 50;
 
-        private int frame = 10;
+        private float timer;
+        private float frameTime = 0.5f;
         
         [SerializeField] private Grid _grid;
         private EntityManager _entityManager;
@@ -39,10 +40,11 @@ namespace FlatEarth
         {
             foreach (var entity in _entityManager.entities)
             {
-                entity.Sense();
-                frame++;
-                if (frame > 60)
+                timer += Time.deltaTime;
+                if(timer > frameTime)
                 {
+                    timer = 0;
+                    entity.Sense();
                     entity.Think();
                 }
 

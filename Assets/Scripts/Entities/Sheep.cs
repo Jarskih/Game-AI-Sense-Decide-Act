@@ -298,8 +298,14 @@ namespace FlatEarth
             {
                 float maxTurningDelta = 15;
                 var foodLocation = targetFood.transform.position;
-                Quaternion lookAt = Quaternion.LookRotation(foodLocation - transform.position);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
+                if (foodLocation - transform.position != Vector3.zero)
+                {
+                    if(foodLocation - transform.position != Vector3.zero)
+                    {
+                        Quaternion lookAt = Quaternion.LookRotation(foodLocation - transform.position);
+                        transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
+                    }
+                }
                 transform.position = Vector3.MoveTowards(transform.position, foodLocation, stats.walkSpeed);
             }
         }

@@ -75,8 +75,8 @@ namespace FlatEarth
             }
             else
             {
-                return null;
                 Debug.LogError("Not valid world pos");
+                return null;
             }
         }
 

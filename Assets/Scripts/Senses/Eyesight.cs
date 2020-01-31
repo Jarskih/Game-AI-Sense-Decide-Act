@@ -18,10 +18,13 @@ namespace FlatEarth
             foreach (var food in foodNear)
             {
                 var relativePos = food.Key.transform.position - transform.position;
-                var rot = Quaternion.LookRotation(relativePos, Vector3.up);
-                if (Quaternion.Angle(Quaternion.identity, rot) < visionAngle)
+                if (relativePos != Vector3.zero)
                 {
-                    foodInSight.Add(food.Key, food.Value);
+                    var rot = Quaternion.LookRotation(relativePos, Vector3.up);
+                    if (Quaternion.Angle(Quaternion.identity, rot) < visionAngle)
+                    {
+                        foodInSight.Add(food.Key, food.Value);
+                    }  
                 }
             }
 
