@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -45,7 +46,13 @@ namespace FlatEarth
         EventManager.StartListening("EntityDied", RemoveEntity);
         EventManager.StartListening("EntityAdded", AddEntity);
         EventManager.StartListening("GrassGrowing", GrowGrass);
-        
+    }
+
+    private void OnDisable()
+    {
+        EventManager.StopListening("EntityDied", RemoveEntity);
+        EventManager.StopListening("EntityAdded", AddEntity);
+        EventManager.StopListening("GrassGrowing", GrowGrass);
     }
 
     public void UpdateEntities()
@@ -66,6 +73,11 @@ namespace FlatEarth
                 RemoveEntityToList(e);
             }
             _removedEntities.Clear();
+        }
+
+        if (_grassList.Count > _grid.sizeX * _grid.sizeZ)
+        {
+            Debug.LogError("Too many grass entities");
         }
     }
 
@@ -120,7 +132,7 @@ namespace FlatEarth
         var t = e.transform;
         t.SetParent(grassContainer.transform);
         t.localScale = new Vector3(0.0f, 0.1f, 0.0f);
-        t.position = message.node.GetNodeGridPos();
+        t.position = message.node.GetNodeWorldPos();
 
         e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Grass);
         e.GetComponent<Grass>().Init(_grid);

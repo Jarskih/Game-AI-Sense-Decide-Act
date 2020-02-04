@@ -49,5 +49,10 @@ namespace FlatEarth
         {
             return _entities;
         }
+
+        public Vector3 GetNodeSize()
+        {
+            return new Vector3(_x, _y, _z);
+        }
     }
 }

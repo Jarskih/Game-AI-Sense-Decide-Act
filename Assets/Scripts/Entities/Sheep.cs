@@ -67,10 +67,12 @@ namespace FlatEarth
             _eyeSight = gameObject.AddComponent<Eyesight>();
             _hearing = gameObject.AddComponent<Hearing>();
 
-            // Add actions this entity can perform and assign priorities for actions
+            // Add actions this entity can perform and assign priorities for actions (Higher is more important)
             _availableActions.Add(new WanderAction(1));
-            _availableActions.Add(new EatAction(2));
-            _availableActions.Add(new FleeAction(3));
+            _availableActions.Add(new BreedAction(2));
+            _availableActions.Add(new EatAction(3));
+            _availableActions.Add(new FleeAction(4));
+
             
             // Init stats
             _stats.hungerLimit = 30;
@@ -160,6 +162,7 @@ namespace FlatEarth
                 Debug.LogError("isAfraid: " + _currentState.GetState("isAfraid").ToString());
                 Debug.LogError("sawFood: " + _currentState.GetState("sawFood").ToString());
                 Debug.LogError("isEating: " + _currentState.GetState("isEating").ToString());
+                Debug.LogError("isMature: " + _currentState.GetState("isMature").ToString());
             }
         }
 
@@ -177,14 +180,19 @@ namespace FlatEarth
             {
                 _health += Time.deltaTime * _recoverSpeed;
             }
-                      
+
             // Starved to death
             if (_health < 0)
             {
                 Die();
             }
 
-            _currentAction?.Act(this);
+            _health = Mathf.Min(_health, stats.maxHealth);
+
+            if (_currentAction != null && _currentAction.CanDoAction(_currentState))
+            {
+                _currentAction?.Act(this);
+            }
         }
 
         public override Dictionary<Entity, float> FindFood()
@@ -244,6 +252,7 @@ namespace FlatEarth
                     var message = new EventManager.EventMessage(_id, node, EntityType.SHEEP);
                     EventManager.TriggerEvent("EntityAdded", message);
                     _health -= _healthReductionAfterBreeding;
+                    _currentState.UpdateState("isMature", false);
                     return;
                 }
             }
@@ -332,12 +341,12 @@ namespace FlatEarth
             }
         }
 
-        IEnumerator StopEating(int id)
+        IEnumerator StopEating(int foodId)
         {
             yield return new WaitForSeconds(2f);
             _hunger = 0;
             _isEating = false;
-            EventManager.EventMessage message = new EventManager.EventMessage(id);
+            EventManager.EventMessage message = new EventManager.EventMessage(foodId, _currentNode, EntityType.GRASS);
             EventManager.TriggerEvent("EntityDied", message);
         }
 
@@ -361,7 +370,7 @@ namespace FlatEarth
         {
             _health = 0;
             _currentNode.RemoveEntity(this);
-            EventManager.EventMessage message = new EventManager.EventMessage(_id);
+            EventManager.EventMessage message = new EventManager.EventMessage(_id, _currentNode, EntityType.SHEEP);
             EventManager.TriggerEvent("EntityDied", message);
         }
     }

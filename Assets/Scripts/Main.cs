@@ -5,13 +5,13 @@ namespace FlatEarth
 {
     public class Main : MonoBehaviour
     {
-        private readonly int _gridSizeX = 50;
+        private readonly int _gridSizeX = 25;
         private readonly int _gridSizeY = 1;
-        private readonly int _gridSizeZ = 50;
+        private readonly int _gridSizeZ = 25;
         
-        private readonly int _startingWolfs = 1;
-        private readonly int _startingSheep = 1;
-        private readonly int _startingGrass = 1;
+        private readonly int _startingWolfs = 2;
+        private readonly int _startingSheep = 10;
+        private readonly int _startingGrass = 10;
 
         private float timer;
         private float frameTime = 0.5f;

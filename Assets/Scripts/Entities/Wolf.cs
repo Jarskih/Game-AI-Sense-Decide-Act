@@ -33,6 +33,9 @@ namespace FlatEarth
         [SerializeField] private float _recoverSpeed = 2;
         [SerializeField] private Dictionary<Entity, float> _foodNear = new Dictionary<Entity, float>();
         
+        // Breeding
+        private float _healthReductionAfterBreeding = 50;
+        
         // Wandering
         private readonly int[] _wanderAngles = {-15, -10, 5, 0, 0, 5, 10, 15};
 
@@ -41,6 +44,7 @@ namespace FlatEarth
         [SerializeField] private static float _memoryTime = 10f;
 
         private WaitForSeconds _wait = new WaitForSeconds(_memoryTime);
+
         public override void Init(Grid grid)
         {
             _id = gameObject.GetInstanceID();
@@ -53,9 +57,11 @@ namespace FlatEarth
             _hearing = gameObject.AddComponent<Hearing>();
             _eyeSight = gameObject.AddComponent<Eyesight>();
 
-            // Add actions this entity can perform and assign priorities for actions
-            _availableActions.Add(new WanderAction(2));
-            _availableActions.Add(new EatAction(1));
+            // Add actions this entity can perform and assign priorities for actions (Higher is more important)
+            _availableActions.Add(new WanderAction(1));
+            _availableActions.Add(new BreedAction(2));
+            _availableActions.Add(new EatAction(3));
+
             
             // init stats
             _stats.hungerLimit = 70;
@@ -95,6 +101,7 @@ namespace FlatEarth
             _currentState.UpdateState("isHungry", _hunger > stats.hungerLimit);
             _currentState.UpdateState("isAfraid", false);
             _currentState.UpdateState("sawFood", _foodInSight != null);
+            _currentState.UpdateState("isMature", _health > 90);
             
             _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
             
@@ -164,8 +171,13 @@ namespace FlatEarth
             {
                 Die();
             }
+            
+            _health = Mathf.Min(_health, stats.maxHealth);
 
-            _currentAction?.Act(this);
+            if (_currentAction != null && _currentAction.CanDoAction(_currentState))
+            {
+                _currentAction?.Act(this);
+            }
         }
 
         public override Dictionary<Entity, float> FindFood()
@@ -186,6 +198,19 @@ namespace FlatEarth
 
         public override void Breed()
         {
+            var neighbors = _grid.GetNeighboringNodes(_currentNode);
+            foreach (var node in neighbors)
+            {
+                if (!_grid.HasEntityOnNode(node, EntityType.WOLF))
+                {
+                    // Found node to breed to
+                    var message = new EventManager.EventMessage(_id, node, EntityType.WOLF);
+                    EventManager.TriggerEvent("EntityAdded", message);
+                    _health -= _healthReductionAfterBreeding;
+                    _currentState.UpdateState("isMature", false);
+                    return;
+                }
+            }
         }
 
         public override void Eat()
@@ -203,7 +228,7 @@ namespace FlatEarth
             if (Vector3.Distance(transform.position, targetFood.transform.position) < 0.5f)
             {
                 _hunger = 0;
-                EventManager.EventMessage message = new EventManager.EventMessage(_foodInSight.GetId());
+                EventManager.EventMessage message = new EventManager.EventMessage(_foodInSight.GetId(), _currentNode, EntityType.SHEEP);
                 EventManager.TriggerEvent("EntityDied", message);
             }
             else
@@ -220,7 +245,7 @@ namespace FlatEarth
         {
             _health = 0;
             _currentNode.RemoveEntity(this);
-            EventManager.EventMessage message = new EventManager.EventMessage(_id);
+            EventManager.EventMessage message = new EventManager.EventMessage(_id, _currentNode, EntityType.WOLF);
             EventManager.TriggerEvent("EntityDied", message);
         }
 

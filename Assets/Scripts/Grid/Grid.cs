@@ -16,8 +16,11 @@ namespace FlatEarth
         private int _gridSizeZ;
 
         private int _nodeSizeX = 1;
-        private int _nodeSizeY = 2;
+        private int _nodeSizeY = 1;
         private int _nodeSizeZ = 1;
+        public int sizeX => _gridSizeX;
+        public int sizeY => _gridSizeY;
+        public int sizeZ => _gridSizeZ;
 
         public bool Init(int pX, int pY, int pZ)
         {
@@ -66,8 +69,8 @@ namespace FlatEarth
                 return null;
             }
 
-            var x = Mathf.FloorToInt(pos.x);
-            var z = Mathf.FloorToInt(pos.z);
+            var x = Mathf.FloorToInt(pos.x / _nodeSizeX);
+            var z = Mathf.FloorToInt(pos.z / _nodeSizeZ);
             
             if(IsValidPos(x,0,z))
             {
@@ -80,12 +83,12 @@ namespace FlatEarth
             }
         }
 
-        public Vector3Int GetRandomNodePos()
+        public Vector3 GetRandomNodePos()
         {
             int x = Random.Range(0, _gridSizeX);
             int y = Random.Range(0, _gridSizeY);
             int z = Random.Range(0, _gridSizeZ);
-            return new Vector3Int(x,y,z);
+            return GetWorldPosFromNode(new Vector3(x,y,z));
         }
         
         public List<Entity> GetEntitiesOnNode(Node n)
@@ -161,7 +164,7 @@ namespace FlatEarth
             quad.transform.SetParent(parent.transform);
             quad.transform.position = pos;
             quad.transform.rotation = Quaternion.Euler(90, 0, 0);
-            quad.transform.localScale = new Vector3(0.98f, 0.98f, 0.98f);
+            quad.transform.localScale = new Vector3(0.98f*_nodeSizeX, 0.98f*_nodeSizeY, 0.98f*_nodeSizeZ);
             return quad;
         }
         private bool IsValidPos(int pX, int pY, int pZ)
@@ -170,7 +173,7 @@ namespace FlatEarth
             {
                 return false;
             }
-            if (pX > _gridSizeX - 1 || pY > _gridSizeY-1 || pZ > _gridSizeZ-1)
+            if (pX > _nodeSizeX*_gridSizeX - 1 || pY >  _nodeSizeY*_gridSizeY-1 || pZ >  _nodeSizeZ*_gridSizeZ-1)
             {
                 return false;
             }

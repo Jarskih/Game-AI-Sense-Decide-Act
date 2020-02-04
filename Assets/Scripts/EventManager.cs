@@ -12,7 +12,7 @@ namespace FlatEarth
             public readonly Node node;
             public readonly Entity.EntityType type;
 
-        public EventMessage(int id, Node node = null, Entity.EntityType entity = Entity.EntityType.GRASS)
+        public EventMessage(int id, Node node, Entity.EntityType type)
         {
             this.id = id; // Sender Id
             this.node = node; // Node reference

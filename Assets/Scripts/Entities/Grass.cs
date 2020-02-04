@@ -43,6 +43,9 @@ namespace FlatEarth
             
             _stats.maxHealth = 100;
             _health = Random.Range(1, 100); // Random health at start
+            
+            _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
+            _currentNode.AddEntity(this);
         }
         
         public override EntityType GetEntityType()
@@ -66,8 +69,6 @@ namespace FlatEarth
            
             // Default to growing
             _state = State.GROWING;
-            
-            _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
 
             if (_currentNode == null)
             {
@@ -93,8 +94,6 @@ namespace FlatEarth
             
             if (_mature)
             {
-                _spreadIntervalCounter += Time.deltaTime;
-
                 if (_spreadIntervalCounter > _spreadInterval)
                 {
                     _spreadIntervalCounter = 0;
@@ -118,6 +117,7 @@ namespace FlatEarth
          */
         public override void Act()
         {
+            _spreadIntervalCounter += Time.deltaTime;
             switch (_state)
             {
                 case State.DEAD:
@@ -192,25 +192,29 @@ namespace FlatEarth
             var validNodes = new List<Node>();
             foreach (var node in nodes)
             {
-                if (node.GetEntities().Count == 0)
+                var entitiesOnNode = node.GetEntities();
+                
+                // No entities on node so its a valid place to grow grass
+                if (entitiesOnNode.Count == 0)
                 {
                     validNodes.Add(node);
-                    continue;
+                    break;
                 }
 
-                foreach (var entity in node.GetEntities())
+                bool containsGrass = false;
+                foreach (var entity in entitiesOnNode)
                 {
-                    if (entity == null)
+                    if (entity.GetEntityType() == EntityType.GRASS)
                     {
-                        validNodes.Add(node);
+                        containsGrass = true;
                         break;
                     }
+                }
 
-                    if (entity.GetEntityType() != EntityType.GRASS)
-                    {
-                        validNodes.Add(node);
-                        break;
-                    }
+                // Node has other entities but grass so we can grow grass there
+                if (!containsGrass)
+                {
+                    validNodes.Add(node);
                 }
             }
 
@@ -218,7 +222,7 @@ namespace FlatEarth
             {
                 var nodeToSpread = validNodes[UnityEngine.Random.Range(0, validNodes.Count)];
                 EventManager.EventMessage message = new EventManager.EventMessage(_id, nodeToSpread, EntityType.GRASS);
-                EventManager.TriggerEvent("GrassSpreading", message);
+                EventManager.TriggerEvent("EntityAdded", message);
             }
         }
 
@@ -235,7 +239,7 @@ namespace FlatEarth
             _health = 0;
             _state = State.DEAD;
             _currentNode.RemoveEntity(this);
-            EventManager.EventMessage message = new EventManager.EventMessage(_id);
+            EventManager.EventMessage message = new EventManager.EventMessage(_id, _currentNode, EntityType.GRASS);
             EventManager.TriggerEvent("EntityDied", message);
         }
     }
