@@ -174,6 +174,10 @@ namespace FlatEarth
             
             _health = Mathf.Min(_health, stats.maxHealth);
 
+            var scale = _health * 0.01f * Vector3.one;
+            var clampedScale = Mathf.Max(scale.x, 0.3f);
+            transform.localScale = new Vector3(clampedScale,clampedScale,clampedScale);
+            
             if (_currentAction != null && _currentAction.CanDoAction(_currentState))
             {
                 _currentAction?.Act(this);
