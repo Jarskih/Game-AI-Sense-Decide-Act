@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.WebSockets;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.WSA;
@@ -33,6 +34,9 @@ namespace FlatEarth
         [SerializeField] private float _starveSpeed = 2;
         [SerializeField] private float _recoverSpeed = 2;
         
+        // Breeding
+        private float _healthReductionAfterBreeding = 50;
+        
         // Wandering
         private readonly int[] _wanderAngles = {-15, -10, 5, 0, 0, 5, 10, 15};
         [SerializeField] private float _hungerLimit = 30;
@@ -46,9 +50,10 @@ namespace FlatEarth
         private WaitForSeconds _wait = new WaitForSeconds(_memoryTime);
         
         [SerializeField] private bool _isEating;
+        private Dictionary<Entity, float> _sheepNear;
 
 
-        public void Init(Grid grid)
+        public override void Init(Grid grid)
         { 
             EventManager.StartListening("SheepEaten", Eaten);
 
@@ -106,6 +111,7 @@ namespace FlatEarth
             _currentState.UpdateState("isAfraid", _threatNear.Count > 0);
             _currentState.UpdateState("sawFood", _foodInSight != null);
             _currentState.UpdateState("isEating", _isEating);
+            _currentState.UpdateState("isMature", _health > 90);
            
             _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
             
@@ -162,7 +168,7 @@ namespace FlatEarth
             // Increment counters
             _hunger += Time.deltaTime * _hungerSpeed;
             
-            // If starving lose health otherwise get stronger
+            // If starving lose health otherwise gain health
             if (_hunger > _maxHunger)
             {
                 _health -= Time.deltaTime * _starveSpeed;
@@ -226,7 +232,23 @@ namespace FlatEarth
             _targetPos = GetWanderPos();
             transform.position = Vector3.MoveTowards(transform.position, _targetPos, stats.walkSpeed);
         }
-        
+
+        public override void Breed()
+        {
+            var neighbors = _grid.GetNeighboringNodes(_currentNode);
+            foreach (var node in neighbors)
+            {
+                if (!_grid.HasEntityOnNode(node, EntityType.SHEEP))
+                {
+                    // Found node to breed new sheep to
+                    var message = new EventManager.EventMessage(_id, node, EntityType.SHEEP);
+                    EventManager.TriggerEvent("EntityAdded", message);
+                    _health -= _healthReductionAfterBreeding;
+                    return;
+                }
+            }
+        }
+
         private Vector3 GetWanderPos()
         {
             int angle = 0;

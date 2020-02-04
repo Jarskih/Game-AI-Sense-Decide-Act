@@ -22,6 +22,7 @@ namespace FlatEarth
         protected List<Action> _availableActions = new List<Action>();
 
         public abstract EntityType GetEntityType();
+        public abstract void Init(Grid grid);
         public abstract int GetId();
         public abstract void Sense();
         public abstract void Think();
@@ -30,6 +31,9 @@ namespace FlatEarth
         public abstract void Eat();
         public abstract void Flee();
         public abstract void Wander();
+        
+        public abstract void Breed();
+
         protected Action FindBestAction(CurrentState currentState)
         {
             Dictionary<Action, int> actions = new Dictionary<Action, int>();
@@ -40,11 +44,13 @@ namespace FlatEarth
                     actions.Add(action, action.priority);
                 }
             }
+
             var sorted = actions.OrderByDescending(x => x.Value).ToList();
             if (sorted.Count > 0)
             {
                 return sorted[0].Key;
             }
+
             return null;
         }
     }

@@ -41,7 +41,7 @@ namespace FlatEarth
         [SerializeField] private static float _memoryTime = 10f;
 
         private WaitForSeconds _wait = new WaitForSeconds(_memoryTime);
-        public void Init(Grid grid)
+        public override void Init(Grid grid)
         {
             _id = gameObject.GetInstanceID();
             _grid = grid;
@@ -182,6 +182,10 @@ namespace FlatEarth
         {
             _targetPos = GetWanderPos();
             transform.position = Vector3.MoveTowards(transform.position, _targetPos, stats.walkSpeed);
+        }
+
+        public override void Breed()
+        {
         }
 
         public override void Eat()

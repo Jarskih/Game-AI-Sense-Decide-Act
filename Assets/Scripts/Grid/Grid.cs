@@ -139,6 +139,18 @@ namespace FlatEarth
 
             return false;
         }
+
+        public bool HasEntityOnNode(Node node, Entity.EntityType type)
+        {
+            foreach (var entity in GetEntitiesOnNode(node))
+            {
+                if (entity.GetEntityType() == type)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
         
         private GameObject InitGridObject(int pX, int pY, int pZ, Transform parent)
         {
@@ -169,5 +181,6 @@ namespace FlatEarth
         {
             return IsValidPos((int)pos.x, (int)pos.y, (int)pos.z);
         }
+       
     }
 }

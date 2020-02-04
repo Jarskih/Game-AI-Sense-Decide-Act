@@ -33,9 +33,8 @@ namespace FlatEarth
             DEAD,
         }
 
-        public void Init(Grid grid)
+        public override void Init(Grid grid)
         {
-          //  _agent = gameObject.AddComponent<GoapAgent>();
             _id = gameObject.GetInstanceID();
             
             EventManager.StartListening("GrassEaten", Eaten);
@@ -43,6 +42,7 @@ namespace FlatEarth
             transform.position = _grid.GetRandomNodePos();
             
             _stats.maxHealth = 100;
+            _health = Random.Range(1, 100); // Random health at start
         }
         
         public override EntityType GetEntityType()
@@ -152,6 +152,10 @@ namespace FlatEarth
         {
         }
 
+        public override void Breed()
+        {
+        }
+
         private void Grow()
         {
             if (_mature)
@@ -213,7 +217,7 @@ namespace FlatEarth
             if (validNodes.Count > 0)
             {
                 var nodeToSpread = validNodes[UnityEngine.Random.Range(0, validNodes.Count)];
-                EventManager.EventMessage message = new EventManager.EventMessage(_id, nodeToSpread);
+                EventManager.EventMessage message = new EventManager.EventMessage(_id, nodeToSpread, EntityType.GRASS);
                 EventManager.TriggerEvent("GrassSpreading", message);
             }
         }

@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
 using UnityEngine;
 
@@ -41,8 +42,10 @@ namespace FlatEarth
     
     private void InitListeners()
     {
-        EventManager.StartListening("GrassSpreading", GrowGrass);
         EventManager.StartListening("EntityDied", RemoveEntity);
+        EventManager.StartListening("EntityAdded", AddEntity);
+        EventManager.StartListening("GrassGrowing", GrowGrass);
+        
     }
 
     public void UpdateEntities()
@@ -51,7 +54,7 @@ namespace FlatEarth
         {
             foreach (Entity e in _newEntities)
             {
-                AddEntity(e);
+                AddEntityToList(e);
             }
             _newEntities.Clear();
         }
@@ -60,55 +63,42 @@ namespace FlatEarth
         {
             foreach (Entity e in _removedEntities)
             {
-                RemoveEntity(e);
+                RemoveEntityToList(e);
             }
             _removedEntities.Clear();
         }
     }
-    
-    private void InitEntities()
+
+    private void AddEntity(EventManager.EventMessage message)
+    {
+        Entity e = null;
+        switch (message.type)
         {
-            wolfContainer = new GameObject("WolfContainer");
-            for (int i = 0; i < _startingWolfs; i++)
-            {
-                GameObject e = Instantiate(Resources.Load<GameObject>("Prefabs/Wolf"));
-                e.name = "Wolf " + i;
-                e.AddComponent<Wolf>();
-                e.transform.SetParent(wolfContainer.transform);
-
-                AddEntity(e.GetComponent<Entity>());
-                e.GetComponent<Wolf>().Init(_grid);
-            }
-
-            sheepContainer = new GameObject("SheepContainer");
-            for (int i = 0; i < _startingSheep; i++)
-            {
-                GameObject e = Instantiate(Resources.Load<GameObject>("Prefabs/Sheep"));
-                e.name = "Sheep " + i;
-                e.AddComponent<Sheep>();
-                
-                e.transform.SetParent(sheepContainer.transform);
-
-                AddEntity(e.GetComponent<Entity>());
-                e.GetComponent<Sheep>().Init(_grid);
-            }
-
-            grassContainer = new GameObject("GrassContainer");
-            for (int i = 0; i < _startingGrass; i++)
-            {
-                GameObject e = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                e.name = "Grass " + i;
-                e.AddComponent<Grass>();
-                
-                e.transform.SetParent(grassContainer.transform);
-                e.transform.localScale = new Vector3(0.0f, 0.1f, 0.0f);
-
-                e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Grass);
-                AddEntity(e.GetComponent<Entity>());
-                e.GetComponent<Grass>().Init(_grid);
-            }
+            case Entity.EntityType.GRASS:
+                e = CreateEntityGrass(message.node);
+                break;
+            case Entity.EntityType.SHEEP:
+                e = CreateEntitySheep(message.node);
+                break;
+            case Entity.EntityType.WOLF:
+                e = CreateEntityWolf(message.node);
+                break;
+            default:
+                Debug.LogError("No entity type available: " + message.type);
+                break;
         }
 
+        if (e != null)
+        {
+            e.GetComponent<Entity>().Init(_grid);
+            e.transform.position = message.node.GetNodeGridPos();
+            
+            message.node.AddEntity(e);
+            
+            _newEntities.Add(e.GetComponent<Entity>());
+        }
+    }
+    
     private void GrowGrass(EventManager.EventMessage message)
     {
         var entities = message.node.GetEntities();
@@ -140,6 +130,88 @@ namespace FlatEarth
         _newEntities.Add(e.GetComponent<Entity>());
     }
 
+    private Entity CreateEntityGrass(Node targetNode)
+    {
+                
+        GameObject e = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        e.name = "Grass " + _grassList.Count;
+        e.AddComponent<Grass>();
+                
+        e.transform.SetParent(grassContainer.transform);
+        e.transform.localScale = new Vector3(0.0f, 0.1f, 0.0f);
+
+        e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Grass);
+        return e.GetComponent<Entity>();
+    }
+    
+    private Entity CreateEntitySheep(Node targetNode)
+    {
+                
+        GameObject e = Instantiate(Resources.Load<GameObject>("Prefabs/Sheep"));
+        e.name = "Sheep " + _sheepList.Count;
+        e.AddComponent<Sheep>();
+                
+        e.transform.SetParent(sheepContainer.transform);
+
+        return e.GetComponent<Entity>();
+    }
+
+    
+    private Entity CreateEntityWolf(Node targetNode)
+    {
+        GameObject e = Instantiate(Resources.Load<GameObject>("Prefabs/Wolf"));
+        e.name = "Wolf " + _wolfList.Count;
+        e.AddComponent<Wolf>();
+        
+        e.transform.SetParent(wolfContainer.transform);
+
+        return e.GetComponent<Entity>();
+    }
+
+
+    private void InitEntities()
+        {
+            wolfContainer = new GameObject("WolfContainer");
+            for (int i = 0; i < _startingWolfs; i++)
+            {
+                GameObject e = Instantiate(Resources.Load<GameObject>("Prefabs/Wolf"));
+                e.name = "Wolf " + i;
+                e.AddComponent<Wolf>();
+                e.transform.SetParent(wolfContainer.transform);
+
+                AddEntityToList(e.GetComponent<Entity>());
+                e.GetComponent<Wolf>().Init(_grid);
+            }
+
+            sheepContainer = new GameObject("SheepContainer");
+            for (int i = 0; i < _startingSheep; i++)
+            {
+                GameObject e = Instantiate(Resources.Load<GameObject>("Prefabs/Sheep"));
+                e.name = "Sheep " + i;
+                e.AddComponent<Sheep>();
+                
+                e.transform.SetParent(sheepContainer.transform);
+
+                AddEntityToList(e.GetComponent<Entity>());
+                e.GetComponent<Sheep>().Init(_grid);
+            }
+
+            grassContainer = new GameObject("GrassContainer");
+            for (int i = 0; i < _startingGrass; i++)
+            {
+                GameObject e = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                e.name = "Grass " + i;
+                e.AddComponent<Grass>();
+                
+                e.transform.SetParent(grassContainer.transform);
+                e.transform.localScale = new Vector3(0.0f, 0.1f, 0.0f);
+
+                e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Grass);
+                AddEntityToList(e.GetComponent<Entity>());
+                e.GetComponent<Grass>().Init(_grid);
+            }
+        }
+
     private void RemoveEntity(EventManager.EventMessage message)
     {
         var temp = _entities;
@@ -154,7 +226,7 @@ namespace FlatEarth
         }
     }
 
-    private void RemoveEntity(Entity e)
+    private void RemoveEntityToList(Entity e)
     {
         _entities.Remove(e);
         if (e.GetEntityType() == Entity.EntityType.GRASS)
@@ -178,7 +250,7 @@ namespace FlatEarth
         Destroy(e.gameObject);
     }
 
-    private void AddEntity(Entity e)
+    private void AddEntityToList(Entity e)
     {
         _entities.Add(e);
         if (e.GetEntityType() == Entity.EntityType.GRASS)
