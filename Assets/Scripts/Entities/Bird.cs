@@ -118,8 +118,7 @@ public class Bird : MonoBehaviour
     bool IsColliding()
     {
         Vector3 dir = transform.forward;
-        if (Physics.SphereCast(position, _settings.boundsRadius, forward, out var hit, _settings.collisionAvoidDst,
-            _settings.obstacleMask))
+        if (Physics.SphereCast(position, _settings.boundsRadius, forward, out var hit, _settings.collisionAvoidDst))
         {
             return true;
         }
@@ -132,7 +131,7 @@ public class Bird : MonoBehaviour
         {
             Vector3 direction = cachedTransform.TransformDirection(p);
             Ray ray = new Ray (position, direction);
-            if (!Physics.SphereCast (ray, _settings.boundsRadius, _settings.collisionAvoidDst, _settings.obstacleMask)) {
+            if (!Physics.SphereCast (ray, _settings.boundsRadius, _settings.collisionAvoidDst)) {
                 return direction;
             }
         }

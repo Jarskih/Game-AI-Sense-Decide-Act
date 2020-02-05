@@ -15,7 +15,7 @@ public class CurrentState
         Debug.LogError("State doesn't exist");
         return false;
     }
-    
+
     public void UpdateState(string state, bool value)
     {
         if (_states.ContainsKey(state))

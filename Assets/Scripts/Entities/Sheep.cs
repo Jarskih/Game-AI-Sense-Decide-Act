@@ -37,25 +37,23 @@ namespace FlatEarth
         private float _starveSpeed = 2;
         private float _recoverSpeed = 2;
         private bool _isEating;
-        
+
         // Breeding
         private float _healthReductionAfterBreeding = 50;
-        private float _breedingLimit = 90;
-        
+
         // Wandering
         private readonly int[] _wanderAngles = {-15, -10, 5, 0, 0, 5, 10, 15};
-        private float _hungerLimit = 30;
-
-        private Dictionary<Entity, float> _foodNear = new Dictionary<Entity, float>();
+        
+        // Threat
         private Dictionary<Entity, float> _threatNear = new Dictionary<Entity, float>();
         [SerializeField] private List<Entity> _threatList = new List<Entity>();
+        
+        // Food
+        private Dictionary<Entity, float> _foodNear = new Dictionary<Entity, float>();
         [SerializeField] private Entity _foodInSight;
         [SerializeField] private Entity _foodInMemory;
         private static float _memoryTime = 5f;
         private WaitForSeconds _wait = new WaitForSeconds(_memoryTime);
-        
-
-
 
         public override void Init(Grid grid)
         { 
@@ -85,9 +83,10 @@ namespace FlatEarth
             _stats.slowTurnSpeed = 1;
             _stats.fastTurnSpeed = 180;
             _stats.maxHealth = 100;
-            _stats.hearingDistance = 5;
+            _stats.hearingDistance = 10;
             _stats.visionAngle = 90;
             _stats.visionDistance = 3;
+            _stats.breedingLimit = 90;
         }
 
         private void OnDrawGizmosSelected()
@@ -113,12 +112,12 @@ namespace FlatEarth
 
         public override void Sense()
         {
-            _currentState.UpdateState("isHungry", _hunger > _hungerLimit);
+            _currentState.UpdateState("isHungry", _hunger > stats.hungerLimit);
             _currentState.UpdateState("isAfraid", _fear > _fearLimit);
             _currentState.UpdateState("sawFood", _foodInSight != null);
             _currentState.UpdateState("isEating", _isEating);
-            _currentState.UpdateState("isMature", _health > _breedingLimit);
-            
+            _currentState.UpdateState("isMature", _health > stats.breedingLimit);
+
             _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
             
             if (_currentNode != null && _currentNode != _oldNode)
@@ -157,6 +156,7 @@ namespace FlatEarth
         public override void Think()
         {
             // Get actions entity can do
+            _lastAction = _currentAction;
             _currentAction = FindBestAction(_currentState);
 
             if (_currentAction == null)
@@ -171,7 +171,7 @@ namespace FlatEarth
         }
 
         public override void Act()
-        {   
+        {
             // Increment counters
             _hunger += Time.deltaTime * _hungerSpeed;
             
@@ -223,8 +223,8 @@ namespace FlatEarth
         public override void Flee()
         {
            _isEating = false;
-            
-          Quaternion lookAt = Quaternion.identity;
+
+           Quaternion lookAt = Quaternion.identity;
           float maxTurningDelta = 0;
           var direction = Vector3.zero;
 

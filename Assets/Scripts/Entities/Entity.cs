@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -15,6 +16,7 @@ namespace FlatEarth
         }
         protected CurrentState _currentState = new CurrentState();
         protected Action _currentAction;
+        protected Action _lastAction;
 
         protected Vector3 _targetPos;
         public Vector3 targetPos => _targetPos;
@@ -41,7 +43,6 @@ namespace FlatEarth
             {
                 if (action.CanDoAction(currentState))
                 {
-                    action.UpdatePriority(currentState);
                     actions.Add(action, action.priority);
                 }
             }

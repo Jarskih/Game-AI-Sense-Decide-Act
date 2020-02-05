@@ -11,5 +11,6 @@
         public float hearingDistance;
         public float visionAngle;
         public float visionDistance;
+        public float breedingLimit;
     }
 }
