@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace FlatEarth
 {
@@ -23,13 +20,13 @@ public class Bird : MonoBehaviour
     // To update:
     Vector3 acceleration;
     [HideInInspector]
-    public Vector3 avgFlockHeading;
+    public Vector3 avgHeading;
     [HideInInspector]
-    public Vector3 avgAvoidanceHeading;
+    public Vector3 avgAvoidance;
     [HideInInspector]
-    public Vector3 centreOfFlockmates;
+    public Vector3 centreOfFlock;
     [HideInInspector]
-    public int numPerceivedFlockmates;
+    public int numOfBirds;
 
     // Cached
     Material material;
@@ -59,16 +56,16 @@ public class Bird : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.white;
-        Gizmos.DrawSphere(centreOfFlockmates, 1f);
+        Gizmos.DrawSphere(centreOfFlock, 1f);
         
         Gizmos.color = Color.red;
-        Gizmos.DrawRay(transform.position, avgAvoidanceHeading);
+        Gizmos.DrawRay(transform.position, avgAvoidance);
         
         Gizmos.color = Color.green;
-        Gizmos.DrawRay(transform.position, avgFlockHeading);
+        Gizmos.DrawRay(transform.position, avgHeading);
     }
 
-    public void UpdateBoid () {
+    public void UpdateBird () {
         Vector3 acceleration = Vector3.zero;
 
         if (target != null) {
@@ -76,15 +73,15 @@ public class Bird : MonoBehaviour
             acceleration = SteerTowards (offsetToTarget) * _settings.targetWeight;
         }
 
-        if (numPerceivedFlockmates != 0)
+        if (numOfBirds != 0)
         {
-            centreOfFlockmates /= numPerceivedFlockmates;
+            centreOfFlock /= numOfBirds;
 
-            Vector3 offsetToFlockmatesCentre = (centreOfFlockmates - position);
+            Vector3 offsetToFlockmatesCentre = (centreOfFlock - position);
 
-            var alignmentForce = SteerTowards (avgFlockHeading) * _settings.alignWeight;
+            var alignmentForce = SteerTowards (avgHeading) * _settings.alignWeight;
             var cohesionForce = SteerTowards (offsetToFlockmatesCentre) * _settings.cohesionWeight;
-            var separationForce = SteerTowards (avgAvoidanceHeading) *_settings.seperateWeight;
+            var separationForce = SteerTowards (avgAvoidance) *_settings.seperateWeight;
 
             acceleration += alignmentForce;
             acceleration += cohesionForce;

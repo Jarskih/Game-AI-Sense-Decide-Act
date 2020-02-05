@@ -9,7 +9,6 @@ namespace FlatEarth
             base.priority = pPriority;
         }
 
-
         public override bool CanDoAction(CurrentState state)
         {
             if (state.GetState("isHungry"))

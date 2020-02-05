@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEditor.Experimental.Rendering;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace FlatEarth
@@ -13,11 +11,11 @@ namespace FlatEarth
             _x = pX;
             _y = pY;
             _z = pZ;
-            _nodeObject = go;
+            _nodeObject = go; 
         }
-        [SerializeField] private int _x, _y, _z;
-        [SerializeField] private List<Entity> _entities = new List<Entity>();
-        [SerializeField] private GameObject _nodeObject;
+        private int _x, _y, _z;
+        private List<Entity> _entities = new List<Entity>(); // All entities currently on this node
+        private GameObject _nodeObject; // Reference to game object (quad) in the node
 
         public Vector3Int GetNodeGridPos()
         {

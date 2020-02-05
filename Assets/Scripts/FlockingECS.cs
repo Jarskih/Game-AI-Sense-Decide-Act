@@ -11,41 +11,45 @@ using UnityEngine.Jobs;
 
 namespace FlatEarth
 {
+    /// <summary>
+    /// Optimized version of flocking using unity Job system.
+    /// Makes it possible to spawn 10 times more birds but sometimes birds do not detect walls properly.
+    /// </summary>
+    
     public class FlockingECS : MonoBehaviour
     {
-        public FlockingSettings settings;
-        [SerializeField] private List<Bird> _birds = new List<Bird>();
+        private FlockingSettings _settings;
+        private List<Bird> _birds = new List<Bird>();
         private int numberOfBirds = 50;
         private float spawnRadius = 5;
         private int _pointsOnSphere = 300;
 
-        [SerializeField] private GameObject srcGameObject;
-        
         private NativeArray<float3> positions;
         private NativeArray<float3> avgFlockHeading;
         private NativeArray<float3> centreOfFlock;
         private NativeArray<float3> avgAvoidanceHeading;
         private NativeArray<int> numFlockmates;
         private NativeList<JobHandle> jobHandles;
-
-        // Start is called before the first frame update
+        
         void Start()
         {
+            // Load flocking settings
+            _settings = Resources.Load<FlockingSettings>("Data/FlockingSettings");
+            
+            // Create birds
             for (int i = 0; i < numberOfBirds; i++)
             {
                 Vector3 pos = transform.position + UnityEngine.Random.insideUnitSphere * spawnRadius;
-                GameObject b = Instantiate(Resources.Load<GameObject>("Prefabs/Bird"), pos,
-                    Quaternion.identity);
+                GameObject b = Instantiate(Resources.Load<GameObject>("Prefabs/Bird"), pos, Quaternion.identity);
                 b.transform.forward = UnityEngine.Random.insideUnitSphere;
-                b.GetComponent<Bird>().Initialize(settings);
+                b.GetComponent<Bird>().Initialize(_settings);
                 _birds.Add(b.GetComponent<Bird>());
             }
-            
-
         }
 
         void Update()
         {
+            // Allocate arrays of information sent to a job
             jobHandles = new NativeList<JobHandle>(Allocator.TempJob);
             positions = new NativeArray<float3>(_birds.Count, Allocator.TempJob);
             avgFlockHeading = new NativeArray<float3>(_birds.Count, Allocator.TempJob);
@@ -59,6 +63,7 @@ namespace FlatEarth
 
             for (int i = 0; i < _birds.Count; i++)
             {
+                // Create job with the necessary information for calculating flocking behavior
                 TestJob test = new TestJob
                 {
                     numberOfBirds = _birds.Count,
@@ -71,21 +76,25 @@ namespace FlatEarth
                     numFlockmatesWrite = numFlockmates,
                 };
 
+                // Schedule job to be executed
                 JobHandle jobHandle = test.Schedule(_birds.Count, 50);
                 jobHandles.Add(jobHandle);
             }
 
+            // Complete all jobs
             JobHandle.CompleteAll(jobHandles);
-
+            
+            // Update bird properties
             for (int i = 0; i < _birds.Count; i++)
             {
-                _birds[i].avgFlockHeading = avgFlockHeading[i];
-                _birds[i].centreOfFlockmates = centreOfFlock[i];
-                _birds[i].avgAvoidanceHeading = avgAvoidanceHeading[i];
-                _birds[i].numPerceivedFlockmates = numFlockmates[i];
-                _birds[i].UpdateBoid();
+                _birds[i].avgHeading = avgFlockHeading[i];
+                _birds[i].centreOfFlock = centreOfFlock[i];
+                _birds[i].avgAvoidance = avgAvoidanceHeading[i];
+                _birds[i].numOfBirds = numFlockmates[i];
+                _birds[i].UpdateBird();
             }
 
+            // Dispose arrays
             jobHandles.Dispose();
             positions.Dispose();
             avgFlockHeading.Dispose();
@@ -94,6 +103,10 @@ namespace FlatEarth
             numFlockmates.Dispose();
         }
 
+        
+        /// <summary>
+        /// Burst compiled job for finding clock direction
+        /// </summary>
         [BurstCompile]
         private struct TestJob : IJobParallelFor
         {

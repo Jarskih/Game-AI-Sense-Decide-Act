@@ -14,9 +14,9 @@ namespace FlatEarth
         private readonly int _startingGrass = 10;
 
         private float timer;
-        private float frameTime = 0.5f;
+        private float frameTime = 0.2f;
         
-        [SerializeField] private Grid _grid;
+        private Grid _grid;
         private EntityManager _entityManager;
         void Start()
         {

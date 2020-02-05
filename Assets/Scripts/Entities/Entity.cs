@@ -36,11 +36,12 @@ namespace FlatEarth
 
         protected Action FindBestAction(CurrentState currentState)
         {
-            Dictionary<Action, int> actions = new Dictionary<Action, int>();
+            Dictionary<Action, float> actions = new Dictionary<Action, float>();
             foreach (var action in _availableActions)
             {
                 if (action.CanDoAction(currentState))
                 {
+                    action.UpdatePriority(currentState);
                     actions.Add(action, action.priority);
                 }
             }

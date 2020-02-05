@@ -8,18 +8,18 @@ namespace FlatEarth
         private Stats _stats;
         public Stats stats => _stats;
         
-        [SerializeField] private float _growSpeed = 20f;
-        [SerializeField] private float _dieSpeed = 100f;
-        [SerializeField] private float _lifetimeAsMature = 60;
-        [SerializeField] private float _spreadInterval = 5;
+        private float _growSpeed = 20f;
+        private float _dieSpeed = 100f;
+        private float _lifetimeAsMature = 60;
+        private float _spreadInterval = 5;
 
-        [SerializeField] private int _id;
-        [SerializeField] private State _state;
-        [SerializeField] private EntityType type = EntityType.GRASS;
-        [SerializeField] private float _lifeTimeCounter = 0;
-        [SerializeField] private float _spreadIntervalCounter = 0;
-        [SerializeField] private float _health = 1;
-        [SerializeField] private bool _mature;
+        private int _id;
+        private State _state;
+        private EntityType type = EntityType.GRASS;
+        private float _lifeTimeCounter = 0;
+        private float _spreadIntervalCounter = 0;
+        private float _health = 1;
+        private bool _mature;
 
         // Grid
         private Grid _grid;

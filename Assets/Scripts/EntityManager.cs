@@ -13,13 +13,13 @@ namespace FlatEarth
         private int _startingSheep;
         private int _startingGrass;
 
-        [SerializeField] private static List<Entity> _entities = new List<Entity>();
-        [SerializeField] private static List<Entity> _newEntities = new List<Entity>();
-        [SerializeField] private static List<Entity> _removedEntities = new List<Entity>();
+        private static List<Entity> _entities = new List<Entity>();
+        private static List<Entity> _newEntities = new List<Entity>();
+        private static List<Entity> _removedEntities = new List<Entity>();
         
-        [SerializeField] private static List<Entity> _grassList = new List<Entity>();
-        [SerializeField] private static List<Entity> _sheepList = new List<Entity>();
-        [SerializeField] private static List<Entity> _wolfList = new List<Entity>();
+        private static List<Entity> _grassList = new List<Entity>();
+        private static List<Entity> _sheepList = new List<Entity>();
+        private static List<Entity> _wolfList = new List<Entity>();
 
     public List<Entity> entities => _entities;
 
@@ -37,11 +37,10 @@ namespace FlatEarth
         _startingGrass = grass;
 
         _grid = grid;
-        InitListeners();
         InitEntities();
     }
     
-    private void InitListeners()
+    private void OnEnable()
     {
         EventManager.StartListening("EntityDied", RemoveEntity);
         EventManager.StartListening("EntityAdded", AddEntity);

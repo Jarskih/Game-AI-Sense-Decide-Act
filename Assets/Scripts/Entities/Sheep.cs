@@ -1,10 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.WebSockets;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.WSA;
 
 namespace FlatEarth
 {
@@ -18,39 +15,46 @@ namespace FlatEarth
         private Eyesight _eyeSight;
         
         // internal state
-        private float _maxHunger = 100;
         [SerializeField] private float _health = 1;
         [SerializeField] private float _hunger = 0;
+        [SerializeField] private float _fear = 0;
  
         private readonly EntityType type = EntityType.SHEEP;
         private int _id;
         private Grid _grid;
         
-        [SerializeField] private Node _currentNode;
-        [SerializeField] private Node _oldNode;
+        private Node _currentNode;
+        private Node _oldNode;
+        
+        // Fleeing
+        private float _maxFear = 100;
+        private float _fearLimit = 10;
+        private float _covardice = 10;
         
         // Hunger
-        [SerializeField] private float _hungerSpeed = 2;
-        [SerializeField] private float _starveSpeed = 2;
-        [SerializeField] private float _recoverSpeed = 2;
+        private float _maxHunger = 100;
+        private float _hungerSpeed = 2;
+        private float _starveSpeed = 2;
+        private float _recoverSpeed = 2;
+        private bool _isEating;
         
         // Breeding
         private float _healthReductionAfterBreeding = 50;
+        private float _breedingLimit = 90;
         
         // Wandering
         private readonly int[] _wanderAngles = {-15, -10, 5, 0, 0, 5, 10, 15};
-        [SerializeField] private float _hungerLimit = 30;
-        [SerializeField] private Vector3 _targetPos;
+        private float _hungerLimit = 30;
 
-        [SerializeField] private Dictionary<Entity, float> _foodNear = new Dictionary<Entity, float>();
-        [SerializeField] private Dictionary<Entity, float> _threatNear = new Dictionary<Entity, float>();
+        private Dictionary<Entity, float> _foodNear = new Dictionary<Entity, float>();
+        private Dictionary<Entity, float> _threatNear = new Dictionary<Entity, float>();
+        [SerializeField] private List<Entity> _threatList = new List<Entity>();
         [SerializeField] private Entity _foodInSight;
         [SerializeField] private Entity _foodInMemory;
-        [SerializeField] private static float _memoryTime = 5f;
+        private static float _memoryTime = 5f;
         private WaitForSeconds _wait = new WaitForSeconds(_memoryTime);
         
-        [SerializeField] private bool _isEating;
-        private Dictionary<Entity, float> _sheepNear;
+
 
 
         public override void Init(Grid grid)
@@ -69,9 +73,9 @@ namespace FlatEarth
 
             // Add actions this entity can perform and assign priorities for actions (Higher is more important)
             _availableActions.Add(new WanderAction(1));
-            _availableActions.Add(new BreedAction(2));
-            _availableActions.Add(new EatAction(3));
-            _availableActions.Add(new FleeAction(4));
+            _availableActions.Add(new BreedAction(1));
+            _availableActions.Add(new EatAction(1));
+            _availableActions.Add(new FleeAction(1));
 
             
             // Init stats
@@ -85,7 +89,7 @@ namespace FlatEarth
             _stats.visionAngle = 90;
             _stats.visionDistance = 3;
         }
-        
+
         private void OnDrawGizmosSelected()
         {
             Gizmos.color = Color.white;
@@ -110,11 +114,11 @@ namespace FlatEarth
         public override void Sense()
         {
             _currentState.UpdateState("isHungry", _hunger > _hungerLimit);
-            _currentState.UpdateState("isAfraid", _threatNear.Count > 0);
+            _currentState.UpdateState("isAfraid", _fear > _fearLimit);
             _currentState.UpdateState("sawFood", _foodInSight != null);
             _currentState.UpdateState("isEating", _isEating);
-            _currentState.UpdateState("isMature", _health > 90);
-           
+            _currentState.UpdateState("isMature", _health > _breedingLimit);
+            
             _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
             
             if (_currentNode != null && _currentNode != _oldNode)
@@ -126,7 +130,7 @@ namespace FlatEarth
             
             // Listen for wolves
             _threatNear = _hearing.DetectEntities(EntityType.WOLF, stats.hearingDistance);
-            
+            _threatList = _threatNear.Keys.ToList();
             // Try to see food
             _foodNear = _eyeSight.DetectEntities(EntityType.GRASS, stats.visionDistance, stats.visionAngle);
             
@@ -140,7 +144,7 @@ namespace FlatEarth
             if (_foodInMemory == null)
             {
                 _foodInMemory = _foodInSight;
-                StartCoroutine(ForgetFood());
+                StartCoroutine(ForgetFood()); // forget where the food was
             }
         }
 
@@ -180,6 +184,18 @@ namespace FlatEarth
             {
                 _health += Time.deltaTime * _recoverSpeed;
             }
+            
+            // Increment fear if wolves on sight
+            if (_threatList.Count == 0)
+            {
+                _fear -= Time.deltaTime * _covardice;
+            }
+            else
+            {
+                _fear += Time.deltaTime * _covardice;
+            }
+
+            _fear = Mathf.Clamp(_fear, 0, _maxFear);
 
             // Starved to death
             if (_health < 0)
@@ -216,25 +232,26 @@ namespace FlatEarth
           {
               direction += transform.position - wolf.Key.transform.position;
           }
-         
-          _targetPos = transform.position + transform.forward * 1;
+
+          var t = transform;
+          _targetPos = t.position + t.forward * 1;
           
           if (_grid.IsOutsideGrid(_targetPos))
           { 
               // We hit the end of the grid. Turn around
-              var angle = 180;
+              var angle = 5;
               lookAt = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y + angle, transform.rotation.eulerAngles.z);
-              maxTurningDelta = 180;
+              maxTurningDelta = 5;
+              transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
           }
           else
           {
               lookAt = Quaternion.LookRotation(direction.normalized);
               maxTurningDelta = 5;
+                        
+              transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
+              transform.position = Vector3.MoveTowards(transform.position, _targetPos, stats.runSpeed);
           }
-          
-
-          transform.rotation = Quaternion.RotateTowards(transform.rotation, lookAt, maxTurningDelta);
-          transform.position = Vector3.MoveTowards(transform.position, _targetPos, stats.runSpeed);
         }
 
 

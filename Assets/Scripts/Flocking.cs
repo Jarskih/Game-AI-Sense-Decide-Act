@@ -1,22 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using Unity.Collections;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace FlatEarth
 {
+    /// <summary>
+    /// Flocking behaviour
+    /// </summary>
+    
     public class Flocking : MonoBehaviour
     { 
         private FlockingSettings _settings;
         private List<Bird> _birds = new List<Bird>();
         private int numberOfBirds = 50;
         private float spawnRadius = 5;
-
-        // Start is called before the first frame update
-    void Start()
+        
+        void Start()
     {
+        // Load flocking settings
         _settings = Resources.Load<FlockingSettings>("Data/FlockingSettings");
         
+        // Create birds
         for (int i = 0; i < numberOfBirds; i++)
         {
             Vector3 pos = transform.position + UnityEngine.Random.insideUnitSphere * spawnRadius;
@@ -27,16 +30,19 @@ namespace FlatEarth
             b.transform.SetParent(transform);
         }
     }
-
-    // Update is called once per frame
-    void Update()
+        
+     void Update()
     {
+        // Calculate heading for each bird in scene
         foreach (var bird in _birds)
         {
-            Vector3 avgFlockHeading = Vector3.zero;
+            // Reset variables
+            Vector3 avgHeading = Vector3.zero;
             Vector3 centreOfFlock = Vector3.zero;
-            int numFlockmates = 0;
-            Vector3 avgAvoidanceHeading = Vector3.zero;
+            int numOfBirds = 0;
+            Vector3 avgAvoidance = Vector3.zero;
+            
+            // Loop through every bird in the flock and add vectors to the bird's heading
             foreach (var birdInFlock in _birds)
             {
                 if (birdInFlock == bird)
@@ -44,29 +50,30 @@ namespace FlatEarth
                     continue;
                 }
                 Vector3 offset = birdInFlock.transform.position - bird.transform.position;
-                float sqrDst = offset.x * offset.x + offset.y * offset.y + offset.z * offset.z;
+                float squaredDist = offset.sqrMagnitude;
 
-                if (sqrDst < _settings.perceptionRadius * _settings.avoidanceRadius)
+                if (squaredDist < _settings.perceptionRadius * _settings.avoidanceRadius)
                 {
-                    avgFlockHeading  += birdInFlock.transform.forward;
+                    avgHeading  += birdInFlock.transform.forward;
                     centreOfFlock += birdInFlock.transform.position;
-                    numFlockmates += 1;
+                    numOfBirds += 1;
                     
-                    if (sqrDst < _settings.avoidanceRadius * _settings.avoidanceRadius)
+                    if (squaredDist < _settings.avoidanceRadius * _settings.avoidanceRadius)
                     {
-                        avgAvoidanceHeading -= offset / sqrDst;
+                        avgAvoidance -= offset / squaredDist;
                     }
                 }
             }
-
-            bird.avgFlockHeading = avgFlockHeading;
-            bird.centreOfFlockmates = centreOfFlock;
-            bird.avgAvoidanceHeading = avgAvoidanceHeading;
-            bird.numPerceivedFlockmates = numFlockmates;
             
-            bird.UpdateBoid();
+            // Assign variables to the bird
+            bird.avgHeading = avgHeading;
+            bird.centreOfFlock = centreOfFlock;
+            bird.avgAvoidance = avgAvoidance;
+            bird.numOfBirds = numOfBirds;
+            
+            // Update heading
+            bird.UpdateBird();
         } 
     }
-}
-
+    }
 }
