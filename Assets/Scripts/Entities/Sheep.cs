@@ -54,6 +54,12 @@ namespace FlatEarth
         [SerializeField] private Entity _foodInMemory;
         private static float _memoryTime = 5f;
         private WaitForSeconds _wait = new WaitForSeconds(_memoryTime);
+        
+        // UI
+        private Sprite _fleeSprite;
+        private Sprite _breedSprite;
+        private Sprite _eatSprite;
+        private Sprite _wanderSprite;
 
         public override void Init(Grid grid)
         { 
@@ -74,7 +80,12 @@ namespace FlatEarth
             _availableActions.Add(new BreedAction(2));
             _availableActions.Add(new EatAction(3));
             _availableActions.Add(new FleeAction(4));
-
+            
+            // UI sprites
+            _eatSprite = Resources.Load<Sprite>("Sprites/Grass");
+            _fleeSprite = Resources.Load<Sprite>("Sprites/Wolf");
+            _breedSprite = Resources.Load<Sprite>("Sprites/Heart");
+            _wanderSprite = Resources.Load<Sprite>("Sprites/Smile");
             
             // Init stats
             _stats.hungerLimit = 50;
@@ -222,6 +233,7 @@ namespace FlatEarth
        
         public override void Flee()
         {
+            _stateSprite = _fleeSprite;
            Quaternion lookAt = Quaternion.identity;
           float maxTurningDelta = 0;
           var direction = Vector3.zero;
@@ -255,12 +267,14 @@ namespace FlatEarth
 
         public override void Wander()
         {
+            _stateSprite = _wanderSprite;
             _targetPos = GetWanderPos(_grid, _stats, _wanderAngles);
             transform.position = Vector3.MoveTowards(transform.position, _targetPos, stats.walkSpeed);
         }
 
         public override void Breed()
         {
+            _stateSprite = _breedSprite;
             var neighbors = _grid.GetNeighboringNodes(_currentNode);
             foreach (var node in neighbors)
             {
@@ -285,6 +299,7 @@ namespace FlatEarth
         /// </summary>
         public override void Eat()
         {
+            _stateSprite = _eatSprite;
             if (_isEating)
             {
                 return;

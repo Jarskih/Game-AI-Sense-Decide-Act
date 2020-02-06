@@ -14,6 +14,9 @@ namespace FlatEarth
             WOLF,
             GRASS
         }
+        
+        protected Sprite _stateSprite;
+
         protected CurrentState _currentState = new CurrentState();
         protected Action _currentAction;
         protected Action _lastAction;
@@ -83,6 +86,11 @@ namespace FlatEarth
 
                 return transform.position + transform.forward * 1;
             }
+        }
+
+        public Sprite GetCurrentState()
+        {
+            return _stateSprite;
         }
     }
 }

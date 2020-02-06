@@ -18,7 +18,7 @@ namespace FlatEarth
         
         [SerializeField] private Grid _grid;
         private EntityManager _entityManager;
-        private CreateUIElement _createUiElement;
+        private SelectAnimal _selectAnimal;
         void Start()
         {
             gameObject.AddComponent<EventManager>();
@@ -34,15 +34,15 @@ namespace FlatEarth
             _entityManager = gameObject.AddComponent<EntityManager>();
             _entityManager.Init(_grid, _startingWolfs, _startingSheep, _startingGrass);
 
-            _createUiElement = FindObjectOfType<CreateUIElement>();
-            _createUiElement.StartListeningForEvents();
-
+            _selectAnimal = FindObjectOfType<SelectAnimal>();
+            _selectAnimal.Init(_grid);
         }
 
         // Update is called once per frame
         void Update()
         {
             _entityManager.UpdateUI();
+            _selectAnimal.UpdateUI();
             
             foreach (var entity in  _entityManager.entities)
             {

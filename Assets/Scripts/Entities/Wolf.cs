@@ -15,6 +15,11 @@ namespace FlatEarth
         private Hearing _hearing;
         private Eyesight _eyeSight;
         
+        // UI 
+        private Sprite _eatSprite;
+        private Sprite _breedSprite;
+        private Sprite _wanderSprite;
+        
         // internal state
         private float _maxHunger = 100;
         [SerializeField] protected float _hunger = 0;
@@ -63,6 +68,10 @@ namespace FlatEarth
             _availableActions.Add(new BreedAction(2));
             _availableActions.Add(new EatAction(3));
 
+            // UI sprites
+            _eatSprite = Resources.Load<Sprite>("Sprites/Sheep");
+            _breedSprite = Resources.Load<Sprite>("Sprites/Heart");
+            _wanderSprite = Resources.Load<Sprite>("Sprites/Smile");
             
             // init stats
             _stats.hungerLimit = 70;
@@ -192,12 +201,14 @@ namespace FlatEarth
 
         public override void Wander()
         {
+            _stateSprite = _wanderSprite;
             _targetPos = GetWanderPos(_grid, _stats, _wanderAngles);
             transform.position = Vector3.MoveTowards(transform.position, _targetPos, stats.walkSpeed);
         }
 
         public override void Breed()
         {
+            _stateSprite = _breedSprite;
             var neighbors = _grid.GetNeighboringNodes(_currentNode);
             foreach (var node in neighbors)
             {
@@ -219,6 +230,7 @@ namespace FlatEarth
 
         public override void Eat()
         {
+            _stateSprite = _eatSprite;
             if (_isEating)
             {
                 return;
@@ -270,6 +282,5 @@ namespace FlatEarth
         public override void Flee()
         {
         }
-
     }
 }
