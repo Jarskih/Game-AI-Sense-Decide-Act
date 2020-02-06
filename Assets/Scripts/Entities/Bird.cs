@@ -11,10 +11,6 @@ public class Bird : MonoBehaviour
     private int _pointsOnSphere = 300;
 
     // State
-    [HideInInspector]
-    public Vector3 position;
-    [HideInInspector]
-    public Vector3 forward;
     Vector3 velocity;
 
     // To update:
@@ -30,73 +26,52 @@ public class Bird : MonoBehaviour
 
     // Cached
     Material material;
-    Transform cachedTransform;
     Transform target;
     private Vector3[] _points;
 
     public void Initialize (FlockingSettings settings)
     {
         _settings = settings;
-        cachedTransform = transform;
         
-        position = cachedTransform.position;
-        forward = cachedTransform.forward;
-
         float startSpeed = (settings.minSpeed + settings.maxSpeed) / 2;
         velocity = transform.forward * startSpeed;
         
         // Calculate all points on the sphere
         _points = PointsOnSphere(_pointsOnSphere);
     }
-    
-    private void OnDrawGizmos()
-    {
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.white;
-        Gizmos.DrawSphere(centreOfFlock, 1f);
-        
-        Gizmos.color = Color.red;
-        Gizmos.DrawRay(transform.position, avgAvoidance);
-        
-        Gizmos.color = Color.green;
-        Gizmos.DrawRay(transform.position, avgHeading);
-    }
 
     public void UpdateBird () {
-        Vector3 acceleration = Vector3.zero;
+        Vector3 steeringVector = Vector3.zero;
 
         if (target != null) {
-            Vector3 offsetToTarget = (target.position - position);
-            acceleration = SteerTowards (offsetToTarget) * _settings.targetWeight;
+            Vector3 offsetToTarget = (target.position - transform.position);
+            steeringVector = TurnTowards (offsetToTarget) * _settings.targetWeight;
         }
 
         if (numOfBirds != 0)
         {
             centreOfFlock /= numOfBirds;
 
-            Vector3 offsetToFlockmatesCentre = (centreOfFlock - position);
+            Vector3 offsetToFlockmatesCentre = (centreOfFlock - transform.position);
 
-            var alignmentForce = SteerTowards (avgHeading) * _settings.alignWeight;
-            var cohesionForce = SteerTowards (offsetToFlockmatesCentre) * _settings.cohesionWeight;
-            var separationForce = SteerTowards (avgAvoidance) *_settings.seperateWeight;
+            var alignmentForce = TurnTowards (avgHeading) * _settings.alignWeight;
+            var cohesionForce = TurnTowards (offsetToFlockmatesCentre) * _settings.cohesionWeight;
+            var separationForce = TurnTowards (avgAvoidance) *_settings.seperateWeight;
 
-            acceleration += alignmentForce;
-            acceleration += cohesionForce;
-            acceleration += separationForce;
+            steeringVector += alignmentForce;
+            steeringVector += cohesionForce;
+            steeringVector += separationForce;
         }
 
         if (IsColliding())
         {
             Vector3 collisionAvoidDir = FindDirection();
-            Vector3 collisionAvoidForce = SteerTowards (collisionAvoidDir) * _settings.avoidCollisionWeight;
-            acceleration += collisionAvoidForce;
+            Vector3 collisionAvoidForce = TurnTowards (collisionAvoidDir) * _settings.avoidCollisionWeight;
+            steeringVector += collisionAvoidForce;
         }
 
 
-        velocity += acceleration * Time.deltaTime;
+        velocity += steeringVector * Time.deltaTime;
         float speed = velocity.magnitude;
 
         Vector3 dir = transform.forward;
@@ -104,21 +79,18 @@ public class Bird : MonoBehaviour
         speed = Mathf.Clamp (speed, _settings.minSpeed, _settings.maxSpeed);
         velocity = dir * speed;
 
-        cachedTransform.position += velocity * Time.deltaTime;
-        cachedTransform.forward = dir;
-        position = cachedTransform.position;
-        forward = dir;
+        transform.position += velocity * Time.deltaTime;
+        transform.forward = dir;
     }
     
-    Vector3 SteerTowards (Vector3 vector) {
+    Vector3 TurnTowards (Vector3 vector) {
         Vector3 v = vector.normalized * _settings.maxSpeed - velocity;
         return Vector3.ClampMagnitude (v, _settings.maxSteerForce);
     }
 
     bool IsColliding()
     {
-        Vector3 dir = transform.forward;
-        if (Physics.SphereCast(position, _settings.boundsRadius, forward, out var hit, _settings.collisionAvoidDst))
+        if (Physics.SphereCast(transform.position, _settings.boundsRadius, transform.forward, out var hit, _settings.collisionAvoidDst))
         {
             return true;
         }
@@ -129,13 +101,13 @@ public class Bird : MonoBehaviour
     {
         foreach (var p in _points)
         {
-            Vector3 direction = cachedTransform.TransformDirection(p);
-            Ray ray = new Ray (position, direction);
+            Vector3 direction = transform.TransformDirection(p);
+            Ray ray = new Ray (transform.position, direction);
             if (!Physics.SphereCast (ray, _settings.boundsRadius, _settings.collisionAvoidDst)) {
                 return direction;
             }
         }
-        return forward;
+        return transform.forward;
     }
 
     /// <summary>
