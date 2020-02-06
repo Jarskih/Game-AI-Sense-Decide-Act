@@ -19,6 +19,7 @@ namespace FlatEarth
         private float _maxHunger = 100;
         [SerializeField] protected float _hunger = 0;
         [SerializeField] private float _health = 1;
+        [SerializeField] private bool _isEating;
         
         private readonly EntityType type = EntityType.WOLF;
         private int _id;
@@ -28,13 +29,13 @@ namespace FlatEarth
         [SerializeField] private Node _oldNode;
        
         // Hunger
-        [SerializeField] private float _hungerSpeed = 2;
+        [SerializeField] private float _hungerSpeed = 1;
         [SerializeField] private float _starveSpeed = 2;
-        [SerializeField] private float _recoverSpeed = 2;
+        [SerializeField] private float _recoverSpeed = 1;
         [SerializeField] private Dictionary<Entity, float> _foodNear = new Dictionary<Entity, float>();
         
         // Breeding
-        private float _healthReductionAfterBreeding = 50;
+        private float _healthReductionAfterBreeding = 70;
         
         // Wandering
         private readonly int[] _wanderAngles = {-15, -10, 5, 0, 0, 5, 10, 15};
@@ -50,7 +51,7 @@ namespace FlatEarth
             _id = gameObject.GetInstanceID();
             _grid = grid;
             transform.position = _grid.GetRandomNodePos();
-            _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
+            _currentNode = _grid.GetNodeFromWorldPos(transform.position);
             _oldNode = _currentNode;
             
             // Senses
@@ -70,9 +71,9 @@ namespace FlatEarth
             _stats.slowTurnSpeed = 1;
             _stats.fastTurnSpeed = 180;
             _stats.maxHealth = 100;
-            _stats.hearingDistance = 7;
+            _stats.hearingDistance = 5;
             _stats.visionAngle = 90;
-            _stats.visionDistance = 5;
+            _stats.visionDistance = 10;
         }
 
         private void OnDrawGizmosSelected()
@@ -103,7 +104,7 @@ namespace FlatEarth
             _currentState.UpdateState("sawFood", _foodInSight != null);
             _currentState.UpdateState("isMature", _health > 90);
             
-            _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
+            _currentNode = _grid.GetNodeFromWorldPos(transform.position);
             
             if (_currentNode != null && _currentNode != _oldNode)
             {
@@ -165,9 +166,9 @@ namespace FlatEarth
             {
                 _health += Time.deltaTime * _recoverSpeed;
             }
-
+            
             // Starved to death
-            if (_health < 0)
+            if (_health <= 0)
             {
                 Die();
             }
@@ -189,14 +190,9 @@ namespace FlatEarth
             return _foodNear;
         }
 
-        public override void Flee()
-        {
-        }
-
-
         public override void Wander()
         {
-            _targetPos = GetWanderPos();
+            _targetPos = GetWanderPos(_grid, _stats, _wanderAngles);
             transform.position = Vector3.MoveTowards(transform.position, _targetPos, stats.walkSpeed);
         }
 
@@ -208,7 +204,7 @@ namespace FlatEarth
                 if (!_grid.HasEntityOnNode(node, EntityType.WOLF))
                 {
                     // Found node to breed to
-                    var message = new EventManager.EventMessage(_id, node, EntityType.WOLF);
+                    var message = new EventManager.EventMessage(this, node, EntityType.WOLF);
                     EventManager.TriggerEvent("EntityAdded", message);
                     _health -= _healthReductionAfterBreeding;
                     _currentState.UpdateState("isMature", false);
@@ -217,8 +213,17 @@ namespace FlatEarth
             }
         }
 
+        public override void Grow()
+        {
+        }
+
         public override void Eat()
         {
+            if (_isEating)
+            {
+                return;
+            }
+            
             Entity targetFood = null;
             
             if (_foodInSight == null && _foodInMemory == null)
@@ -231,8 +236,9 @@ namespace FlatEarth
 
             if (Vector3.Distance(transform.position, targetFood.transform.position) < 0.5f)
             {
-                _hunger = 0;
-                EventManager.EventMessage message = new EventManager.EventMessage(_foodInSight.GetId(), _currentNode, EntityType.SHEEP);
+                _isEating = true;
+                StartCoroutine(StopEating(_foodInSight.GetId()));
+                EventManager.EventMessage message = new EventManager.EventMessage(targetFood, _currentNode, EntityType.SHEEP);
                 EventManager.TriggerEvent("EntityDied", message);
             }
             else
@@ -244,37 +250,26 @@ namespace FlatEarth
                 transform.position = Vector3.MoveTowards(transform.position, foodLocation, stats.runSpeed);
             }
         }
+        
+        IEnumerator StopEating(int foodId)
+        {
+            yield return new WaitForSeconds(2f);
+            _hunger = 0;
+            _isEating = false;
+        }
 
         private void Die()
         {
             _health = 0;
             _currentNode.RemoveEntity(this);
-            EventManager.EventMessage message = new EventManager.EventMessage(_id, _currentNode, EntityType.WOLF);
+            EventManager.EventMessage message = new EventManager.EventMessage(this, _currentNode, EntityType.WOLF);
             EventManager.TriggerEvent("EntityDied", message);
         }
-
-        private Vector3 GetWanderPos()
+        
+        
+        public override void Flee()
         {
-            int angle = 0;
-            float maxTurningDelta; // in degrees
-            var nextPos = transform.position + transform.forward * 1;
-            if (_grid.IsOutsideGrid(nextPos))
-            { 
-                // We hit the end of the grid. Turn around
-                angle = 180;
-                maxTurningDelta = stats.fastTurnSpeed;
-            }
-            else
-            {
-                // Randomly turn left or right or continue straight
-                angle = _wanderAngles[Random.Range(0, _wanderAngles.Length)];
-                maxTurningDelta = stats.slowTurnSpeed;
-            }
-
-            Quaternion rotateDir = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y + angle, transform.rotation.eulerAngles.z);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, rotateDir, maxTurningDelta);
-
-            return transform.position + transform.forward * 1;
         }
+
     }
 }

@@ -13,9 +13,9 @@ namespace FlatEarth
             _z = pZ;
             _nodeObject = go; 
         }
-        private int _x, _y, _z;
-        private List<Entity> _entities = new List<Entity>(); // All entities currently on this node
-        private GameObject _nodeObject; // Reference to game object (quad) in the node
+       [SerializeField] private int _x, _y, _z;
+       [SerializeField] private List<Entity> _entities = new List<Entity>(); // All entities currently on this node
+       [SerializeField] private GameObject _nodeObject; // Reference to game object (quad) in the node
 
         public Vector3Int GetNodeGridPos()
         {
@@ -25,6 +25,18 @@ namespace FlatEarth
         public Vector3 GetNodeWorldPos()
         {
             return _nodeObject.transform.position;
+        }
+        
+        public bool CanAddEntity(Entity.EntityType type)
+        {
+            foreach (var e in _entities)
+            {
+                if (e.GetEntityType() == type)
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public void AddEntity(Entity entity)
@@ -51,6 +63,18 @@ namespace FlatEarth
         public Vector3 GetNodeSize()
         {
             return new Vector3(_x, _y, _z);
+        }
+
+        public bool HasEntity(Entity.EntityType type)
+        {
+            foreach (var entity in _entities)
+            {
+                if (entity.GetEntityType() == type)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }

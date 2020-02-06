@@ -11,14 +11,13 @@ namespace FlatEarth
             public readonly int id;
             public readonly Node node;
             public readonly Entity.EntityType type;
-            public readonly Entity entity;
+            public Entity entity;
 
-        public EventMessage(int id, Node node, Entity.EntityType type, Entity entity = null)
+            public EventMessage(Entity entity, Node node, Entity.EntityType type)
         {
-            this.id = id; // Sender Id
+            this.entity = entity; // Sender Id
             this.node = node; // Node reference
             this.type = type;
-            this.entity = entity;
         }
     }
     [System.Serializable]

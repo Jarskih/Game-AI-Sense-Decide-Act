@@ -6,11 +6,11 @@ using Random = UnityEngine.Random;
 
 namespace FlatEarth
 {
+    [System.Serializable]
     public class Grid
     {
         // Visual representation of grid tile
-        private List<GameObject> _gridObjects = new List<GameObject>();
-        private Node[,,] _nodes;
+       [SerializeField] private Node[,,] _nodes;
         private int _gridSizeX;
         private int _gridSizeY;
         private int _gridSizeZ;
@@ -62,25 +62,17 @@ namespace FlatEarth
         /// </summary>
         /// <param name="pos"></param>
         /// <returns>Node</returns>
-        public Node GetNodeCenterFromWorldPos(Vector3 pos)
+        public Node GetNodeFromWorldPos(Vector3 pos)
         {
             if (!IsValidPos(pos))
             {
                 return null;
             }
 
-            var x = Mathf.FloorToInt(pos.x / _nodeSizeX);
-            var z = Mathf.FloorToInt(pos.z / _nodeSizeZ);
+            var x = Mathf.RoundToInt(pos.x / _nodeSizeX);
+            var z = Mathf.RoundToInt(pos.z / _nodeSizeZ);
             
-            if(IsValidPos(x,0,z))
-            {
-                return _nodes[x, 0, z];
-            }
-            else
-            {
-                Debug.LogError("Not valid world pos");
-                return null;
-            }
+            return IsValidPos(x,0,z) ? _nodes[x, 0, z] : null;
         }
 
         public Vector3 GetRandomNodePos()

@@ -10,42 +10,39 @@ namespace FlatEarth
         
         private float _growSpeed = 20f;
         private float _dieSpeed = 100f;
-        private float _lifetimeAsMature = 60;
+        private float _lifetime = 60;
         private float _spreadInterval = 5;
 
         private int _id;
-        private State _state;
         private EntityType type = EntityType.GRASS;
-        private float _lifeTimeCounter = 0;
-        private float _spreadIntervalCounter = 0;
-        private float _health = 1;
-        private bool _mature;
+        [SerializeField] private float _lifeTimeCounter = 0;
+        [SerializeField] private float _spreadIntervalCounter = 0;
+        [SerializeField] private float _health = 1;
+        [SerializeField] private bool _mature;
 
         // Grid
         private Grid _grid;
         [SerializeField] private Node _currentNode;
-        
-        private enum State
-        {
-            GROWING,
-            SPREADING,
-            TRAMPLED,
-            DEAD,
-        }
-
         public override void Init(Grid grid)
         {
             _id = gameObject.GetInstanceID();
             
             EventManager.StartListening("GrassEaten", Eaten);
             _grid = grid;
-            transform.position = _grid.GetRandomNodePos();
-            
+
             _stats.maxHealth = 100;
             _health = Random.Range(1, 100); // Random health at start
+
+            _stats.breedingLimit = 90;
             
-            _currentNode = _grid.GetNodeCenterFromWorldPos(transform.position);
-            _currentNode.AddEntity(this);
+            _currentNode = _grid.GetNodeFromWorldPos(transform.position);
+
+            // Add actions this entity can perform and assign priorities for actions (Higher is more important)
+            _availableActions.Add(new GrowAction(1));
+            _availableActions.Add(new SpreadAction(2));
+            _availableActions.Add(new TrampledAction(3));
+
+            _currentAction = _availableActions[0];
         }
         
         public override EntityType GetEntityType()
@@ -62,26 +59,27 @@ namespace FlatEarth
 
         public override void Sense()
         {
-            if (_state == State.DEAD)
-            {
-                return;
-            }
-           
-            // Default to growing
-            _state = State.GROWING;
-
             if (_currentNode == null)
             {
                 Debug.LogError("Cant find current node");
             }
             
+            _currentState.UpdateState("isHealthy", _health > _stats.breedingLimit);
+            _currentState.UpdateState("isTrampled", false);
+            _currentState.UpdateState("isReadyToSpread", _spreadIntervalCounter > _spreadInterval);
+ 
+            if (_spreadIntervalCounter > _spreadInterval)
+            {
+                _spreadIntervalCounter = 0;
+            }
+
             foreach (var entity in _grid.GetEntitiesOnNode(_currentNode))
             {
                 if (entity == null) continue;
                 
                 if (entity.GetEntityType() != EntityType.GRASS)
                 {
-                    _state = State.TRAMPLED;
+                    _currentState.UpdateState("isTrampled", true);
                 }
             }
         }
@@ -89,25 +87,7 @@ namespace FlatEarth
         // Decide: On each decide tick the grass should choose if it will try to spread to an adjacent square or grow, depending on its internal state and sensing information.
         public override void Think()
         {
-            if (_state == State.DEAD) { return; }
-            if (_state == State.TRAMPLED) { return; }
-            
-            if (_mature)
-            {
-                if (_spreadIntervalCounter > _spreadInterval)
-                {
-                    _spreadIntervalCounter = 0;
-                    _state = State.SPREADING;
-                }
-                else
-                {
-                    _state = State.GROWING;
-                }
-            }
-            else
-            {
-                _state = State.GROWING;
-            }
+            _currentAction = FindBestAction(_currentState);
         }
 
         /*
@@ -118,51 +98,21 @@ namespace FlatEarth
         public override void Act()
         {
             _spreadIntervalCounter += Time.deltaTime;
-            switch (_state)
-            {
-                case State.DEAD:
-                    break;
-                case State.TRAMPLED:
-                    break;
-                case State.GROWING:
-                {
-                    Grow();
-                    break;
-                }
-                case State.SPREADING:
-                    Spread();
-                    break;
-            }
+
+            _currentAction.Act(this);
+
+            var scale = _health * 0.01f;
+            scale = Mathf.Clamp(scale, 0, 0.9f);
+            transform.localScale = new Vector3(scale, transform.localScale.y, scale);
         }
 
-        public override Dictionary<Entity, float> FindFood()
-        {
-            return null;
-        }
-
-        public override void Eat()
-        {
-        }
-
-        public override void Flee()
-        {
-        }
-
-        public override void Wander()
-        {
-        }
-
-        public override void Breed()
-        {
-        }
-
-        private void Grow()
+        public override void Grow()
         {
             if (_mature)
             {
                 // Age
                 _lifeTimeCounter += Time.deltaTime;
-                if (_lifeTimeCounter > _lifetimeAsMature)
+                if (_lifeTimeCounter > _lifetime)
                 {
                     _health -= Time.deltaTime * _dieSpeed;
                 }
@@ -180,48 +130,24 @@ namespace FlatEarth
                     _mature = true;
                 }
             }
-
-            var scale = _health * 0.01f;
-            scale = Mathf.Clamp(scale, 0, 0.9f);
-            transform.localScale = new Vector3(scale, transform.localScale.y, scale);
         }
-
-        private void Spread()
+        public override void Breed()
         {
             var nodes = _grid.GetNeighboringNodes(_currentNode);
             var validNodes = new List<Node>();
             foreach (var node in nodes)
             {
-                var entitiesOnNode = node.GetEntities();
-                
-                // No entities on node so its a valid place to grow grass
-                if (entitiesOnNode.Count == 0)
+                if (node.HasEntity(EntityType.GRASS))
                 {
-                    validNodes.Add(node);
-                    break;
+                    continue;
                 }
-
-                bool containsGrass = false;
-                foreach (var entity in entitiesOnNode)
-                {
-                    if (entity.GetEntityType() == EntityType.GRASS)
-                    {
-                        containsGrass = true;
-                        break;
-                    }
-                }
-
-                // Node has other entities but grass so we can grow grass there
-                if (!containsGrass)
-                {
-                    validNodes.Add(node);
-                }
+                validNodes.Add(node);
             }
 
             if (validNodes.Count > 0)
             {
                 var nodeToSpread = validNodes[UnityEngine.Random.Range(0, validNodes.Count)];
-                EventManager.EventMessage message = new EventManager.EventMessage(_id, nodeToSpread, EntityType.GRASS);
+                EventManager.EventMessage message = new EventManager.EventMessage(this, nodeToSpread, EntityType.GRASS);
                 EventManager.TriggerEvent("EntityAdded", message);
             }
         }
@@ -237,10 +163,26 @@ namespace FlatEarth
         private void Die()
         {
             _health = 0;
-            _state = State.DEAD;
             _currentNode.RemoveEntity(this);
-            EventManager.EventMessage message = new EventManager.EventMessage(_id, _currentNode, EntityType.GRASS);
+            EventManager.EventMessage message = new EventManager.EventMessage(this, _currentNode, EntityType.GRASS);
             EventManager.TriggerEvent("EntityDied", message);
+        }
+        
+        public override Dictionary<Entity, float> FindFood()
+        {
+            return null;
+        }
+        
+        public override void Eat()
+        {
+        }
+
+        public override void Flee()
+        {
+        }
+
+        public override void Wander()
+        {
         }
     }
 }
