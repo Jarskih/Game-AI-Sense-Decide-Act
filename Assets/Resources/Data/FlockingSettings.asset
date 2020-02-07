@@ -12,18 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c3c913d781b33ae4bb07011203728009, type: 3}
   m_Name: FlockingSettings
   m_EditorClassIdentifier: 
-  minSpeed: 2
+  minSpeed: 3
   maxSpeed: 5
   perceptionRadius: 5
   avoidanceRadius: 1
-  maxSteerForce: 4
+  maxSteerForce: 5
   alignWeight: 1
   cohesionWeight: 1
   seperateWeight: 2
   targetWeight: 1
-  obstacleMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  boundsRadius: 0.27
-  avoidCollisionWeight: 10
-  collisionAvoidDst: 5
+  boundsRadius: 0.25
+  avoidCollisionWeight: 5
+  collisionAvoidDst: 10
