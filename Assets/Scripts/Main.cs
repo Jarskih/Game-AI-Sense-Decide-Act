@@ -9,12 +9,12 @@ namespace FlatEarth
         private readonly int _gridSizeY = 1;
         private readonly int _gridSizeZ = 50;
         
-        private readonly int _startingWolfs = 1;
-        private readonly int _startingSheep = 1;
-        private readonly int _startingGrass = 0;
+        private readonly int _startingWolfs = 5;
+        private readonly int _startingSheep = 20;
+        private readonly int _startingGrass = 5;
 
         private float timer;
-        private float frameTime = 0.2f;
+        private float frameTime = 10f;
         
         [SerializeField] private Grid _grid;
         private EntityManager _entityManager;
@@ -41,12 +41,12 @@ namespace FlatEarth
         // Update is called once per frame
         void Update()
         {
-            _entityManager.UpdateUI();
-            _selectAnimal.UpdateUI();
+            _entityManager.UpdateUI(); // Update total number of entities in the scene
+            _selectAnimal.UpdateUI(); // Update UI of the selected animal
             
             foreach (var entity in  _entityManager.entities)
             {
-                timer += Time.deltaTime;
+                timer++;
                 if(timer > frameTime)
                 {
                     timer = 0;
@@ -56,7 +56,7 @@ namespace FlatEarth
                 entity.Act();
             }
             
-            _entityManager.UpdateEntities();
+            _entityManager.UpdateEntities(); // Add and remove entities to/from list
         }
     }
 }
