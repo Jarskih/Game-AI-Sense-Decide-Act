@@ -1999,6 +1999,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 605f15ba8dd5fdc44b7a0388088ca0eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _camera: {fileID: 0}
+  _uiElement: {fileID: 0}
+  _grass: {fileID: 0}
+  _wolf: {fileID: 0}
+  _sheep: {fileID: 0}
 --- !u!1 &2034677541
 GameObject:
   m_ObjectHideFlags: 0

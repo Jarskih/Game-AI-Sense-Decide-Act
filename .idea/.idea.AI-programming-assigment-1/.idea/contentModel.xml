@@ -22,7 +22,6 @@
             <e p="TrampledAction.cs" t="Include" />
             <e p="WanderAction.cs" t="Include" />
           </e>
-          <e p="CreateUIElement.cs" t="Include" />
           <e p="CurrentState.cs" t="Include" />
           <e p="Entities" t="Include">
             <e p="Bird.cs" t="Include" />

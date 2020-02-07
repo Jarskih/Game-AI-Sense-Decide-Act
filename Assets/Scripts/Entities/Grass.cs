@@ -27,7 +27,6 @@ namespace FlatEarth
         {
             _id = gameObject.GetInstanceID();
             
-            EventManager.StartListening("GrassEaten", Eaten);
             _grid = grid;
 
             _stats.maxHealth = 100;
@@ -131,6 +130,16 @@ namespace FlatEarth
                 }
             }
         }
+
+        public override void TakeDamage(int damage)
+        {
+            _health -= damage;
+            if (_health <= 0)
+            {
+                Die();
+            }
+        }
+
         public override void Breed()
         {
             var nodes = _grid.GetNeighboringNodes(_currentNode);
@@ -149,14 +158,6 @@ namespace FlatEarth
                 var nodeToSpread = validNodes[UnityEngine.Random.Range(0, validNodes.Count)];
                 EventManager.EventMessage message = new EventManager.EventMessage(this, nodeToSpread, EntityType.GRASS);
                 EventManager.TriggerEvent("EntityAdded", message);
-            }
-        }
-
-        private void Eaten(EventManager.EventMessage message)
-        {
-            if (_id == message.id)
-            {
-                Die();
             }
         }
 

@@ -9,9 +9,9 @@ namespace FlatEarth
         private readonly int _gridSizeY = 1;
         private readonly int _gridSizeZ = 50;
         
-        private readonly int _startingWolfs = 10;
-        private readonly int _startingSheep = 50;
-        private readonly int _startingGrass = 5;
+        private readonly int _startingWolfs = 1;
+        private readonly int _startingSheep = 1;
+        private readonly int _startingGrass = 0;
 
         private float timer;
         private float frameTime = 0.2f;

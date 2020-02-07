@@ -14,6 +14,9 @@ namespace FlatEarth
         private Hearing _hearing;
         private Eyesight _eyeSight;
         
+        private float _lifeTimeCounter;
+        private float _lifetime = 120;
+        
         // internal state
         [SerializeField] private float _health = 1;
         [SerializeField] private float _hunger = 0;
@@ -63,8 +66,6 @@ namespace FlatEarth
 
         public override void Init(Grid grid)
         { 
-            EventManager.StartListening("SheepEaten", Eaten);
-
             _id = gameObject.GetInstanceID();
             _grid = grid;
             transform.position = _grid.GetRandomNodePos();
@@ -77,10 +78,12 @@ namespace FlatEarth
 
             // Add actions this entity can perform and assign priorities for actions (Higher is more important)
             _availableActions.Add(new WanderAction(1));
-            _availableActions.Add(new BreedAction(2));
-            _availableActions.Add(new EatAction(3));
-            _availableActions.Add(new FleeAction(4));
-            
+            _availableActions.Add(new EatAction(2));
+            _availableActions.Add(new FleeAction(3));
+            _availableActions.Add(new BreedAction(4));
+
+
+
             // UI sprites
             _eatSprite = Resources.Load<Sprite>("Sprites/Grass");
             _fleeSprite = Resources.Load<Sprite>("Sprites/Wolf");
@@ -129,13 +132,12 @@ namespace FlatEarth
             _currentState.UpdateState("isEating", _isEating);
             _currentState.UpdateState("isMature", _health > stats.breedingLimit);
 
+            _oldNode = _currentNode;
             _currentNode = _grid.GetNodeFromWorldPos(transform.position);
-            
             if (_currentNode != null && _currentNode != _oldNode)
             {
                 _currentNode.AddEntity(this);
                 _oldNode.RemoveEntity(this);
-                _oldNode = _currentNode;
             }
             
             // Listen for wolves
@@ -183,6 +185,21 @@ namespace FlatEarth
 
         public override void Act()
         {
+            // Died of old age
+            _lifeTimeCounter += Time.deltaTime;
+            if (_lifeTimeCounter > _lifetime)
+            {
+                Die();
+            }
+            
+            // Starved to death
+            if (_health <= 0)
+            {
+                Die();
+                return;
+            }
+            _health = Mathf.Min(_health, stats.maxHealth);
+            
             // Increment counters
             _hunger += Time.deltaTime * _hungerSpeed;
             
@@ -208,14 +225,6 @@ namespace FlatEarth
 
             _fear = Mathf.Clamp(_fear, 0, _maxFear);
 
-            // Starved to death
-            if (_health <= 0)
-            {
-                Die();
-            }
-
-            _health = Mathf.Min(_health, stats.maxHealth);
-            
             var scale = _health * 0.01f * Vector3.one;
             var clampedScale = Mathf.Max(scale.x, 0.5f);
             transform.localScale = new Vector3(clampedScale,clampedScale,clampedScale);
@@ -240,7 +249,10 @@ namespace FlatEarth
 
           foreach (var wolf in _threatNear)
           {
-              direction += transform.position - wolf.Key.transform.position;
+              if (wolf.Key != null)
+              {
+                  direction += transform.position - wolf.Key.transform.position;
+              }
           }
 
           var t = transform;
@@ -294,6 +306,16 @@ namespace FlatEarth
         {
         }
 
+        public override void TakeDamage(int damage)
+        {
+            _health -= damage;
+            if (_health <= 0)
+            {
+                Die();
+            }
+        }
+
+
         /// <summary>
         /// Move to food location if entity has seen food or remember a good spot. Eat if on same tile as food, otherwise move to food location.
         /// </summary>
@@ -337,8 +359,7 @@ namespace FlatEarth
             {
                 _isEating = true;
                 StartCoroutine(StopEating(foodOnTile));
-                EventManager.EventMessage message = new EventManager.EventMessage(foodOnTile, _currentNode, EntityType.GRASS);
-                EventManager.TriggerEvent("EntityDied", message);
+                foodOnTile.TakeDamage(50);
             }
             else
             {
@@ -361,18 +382,6 @@ namespace FlatEarth
             yield return new WaitForSeconds(2f);
             _hunger = 0;
             _isEating = false;
-        }
-
-        /// <summary>
-        /// Check if this entity was eaten by other entity by comparing unique ID
-        /// </summary>
-        /// <param name="message"></param>
-        private void Eaten(EventManager.EventMessage message)
-        {
-            if (_id == message.id)
-            {
-                Die();
-            }
         }
         
         /// <summary>

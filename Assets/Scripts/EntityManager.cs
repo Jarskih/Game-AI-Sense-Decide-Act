@@ -20,9 +20,9 @@ namespace FlatEarth
         private static List<Entity> _wolfList = new List<Entity>();
 
         // Keep track of index for naming entities
-        private int grassIndex = 0;
-        private int sheepIndex = 0;
-        private int wolfIndex = 0;
+        private int _grassIndex = 0;
+        private int _sheepIndex = 0;
+        private int _wolfIndex = 0;
         
         public List<Entity> entities => _entities;
 
@@ -30,9 +30,9 @@ namespace FlatEarth
         private static List<Entity> _removedEntities = new List<Entity>();
 
     // Used to organize scene
-    private GameObject wolfContainer;
-    private GameObject sheepContainer;
-    private GameObject grassContainer;
+    private GameObject _wolfContainer;
+    private GameObject _sheepContainer;
+    private GameObject _grassContainer;
     
     private Grid _grid;
 
@@ -81,7 +81,7 @@ namespace FlatEarth
                 break;
         }
         
-        e.transform.position = targetNode.GetNodeGridPos();
+        e.transform.position = targetNode.GetNodeWorldPos();
         e.GetComponent<Entity>().Init(_grid);
         targetNode.AddEntity(e);
         _addedEntities.Add(e);
@@ -100,45 +100,48 @@ namespace FlatEarth
     }
     private void InitEntities()
     {
-        wolfContainer = new GameObject("WolfContainer");
+        _wolfContainer = new GameObject("WolfContainer");
         for (int i = 0; i < _startingWolfs; i++)
         {
             GameObject e = Instantiate(Resources.Load<GameObject>("Prefabs/Wolf"));
-            e.name = "Wolf " + i;
+            e.name = "Wolf " + _wolfIndex;
             e.AddComponent<Wolf>();
-            e.transform.SetParent(wolfContainer.transform);
+            e.transform.SetParent(_wolfContainer.transform);
 
             AddEntityToList(e.GetComponent<Entity>());
             e.GetComponent<Wolf>().Init(_grid);
+            _wolfIndex++;
         }
 
-        sheepContainer = new GameObject("SheepContainer");
+        _sheepContainer = new GameObject("SheepContainer");
         for (int i = 0; i < _startingSheep; i++)
         {
             GameObject e = Instantiate(Resources.Load<GameObject>("Prefabs/Sheep"));
-            e.name = "Sheep " + i;
+            e.name = "Sheep " + _sheepIndex;
             e.AddComponent<Sheep>();
                 
-            e.transform.SetParent(sheepContainer.transform);
+            e.transform.SetParent(_sheepContainer.transform);
 
             AddEntityToList(e.GetComponent<Entity>());
             e.GetComponent<Sheep>().Init(_grid);
+            _sheepIndex++;
         }
 
-        grassContainer = new GameObject("GrassContainer");
+        _grassContainer = new GameObject("GrassContainer");
         for (int i = 0; i < _startingGrass; i++)
         {
             GameObject e = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            e.name = "Grass " + i;
+            e.name = "Grass " + _grassIndex;
             e.AddComponent<Grass>();
                 
-            e.transform.SetParent(grassContainer.transform);
+            e.transform.SetParent(_grassContainer.transform);
             e.transform.localScale = new Vector3(0.0f, 0.1f, 0.0f);
             e.transform.position = _grid.GetRandomNodePos();
 
             e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Grass);
             AddEntityToList(e.GetComponent<Entity>());
             e.GetComponent<Grass>().Init(_grid);
+            _grassIndex++;
         }
     }
     
@@ -146,11 +149,11 @@ namespace FlatEarth
     {
                 
         GameObject e = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        e.name = "Grass " + grassIndex;
-        grassIndex++;
+        e.name = "Grass " + _grassIndex;
+        _grassIndex++;
         e.AddComponent<Grass>();
                 
-        e.transform.SetParent(grassContainer.transform);
+        e.transform.SetParent(_grassContainer.transform);
         e.transform.localScale = new Vector3(0.0f, 0.1f, 0.0f);
 
         e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Grass);
@@ -160,12 +163,10 @@ namespace FlatEarth
     private Entity CreateEntitySheep(Node targetNode)
     {
                 
-        GameObject e = Instantiate(Resources.Load<GameObject>("Prefabs/Sheep"));
-        e.name = "Sheep " + sheepIndex;
-        sheepIndex++;
+        GameObject e = Instantiate(Resources.Load<GameObject>("Prefabs/Sheep"), _sheepContainer.transform, true);
+        e.name = "Sheep " + _sheepIndex;
+        _sheepIndex++;
         e.AddComponent<Sheep>();
-                
-        e.transform.SetParent(sheepContainer.transform);
 
         return e.GetComponent<Entity>();
     }
@@ -173,12 +174,10 @@ namespace FlatEarth
     
     private Entity CreateEntityWolf(Node targetNode)
     {
-        GameObject e = Instantiate(Resources.Load<GameObject>("Prefabs/Wolf"));
-        e.name = "Wolf " + wolfIndex;
-        wolfIndex++;
+        GameObject e = Instantiate(Resources.Load<GameObject>("Prefabs/Wolf"), _wolfContainer.transform, true);
+        e.name = "Wolf " + _wolfIndex;
+        _wolfIndex++;
         e.AddComponent<Wolf>();
-        
-        e.transform.SetParent(wolfContainer.transform);
 
         return e.GetComponent<Entity>();
     }

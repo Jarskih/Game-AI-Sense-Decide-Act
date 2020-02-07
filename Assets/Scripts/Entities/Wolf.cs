@@ -15,6 +15,9 @@ namespace FlatEarth
         private Hearing _hearing;
         private Eyesight _eyeSight;
         
+        private float _lifeTimeCounter;
+        private double _lifetime = 240;
+        
         // UI 
         private Sprite _eatSprite;
         private Sprite _breedSprite;
@@ -35,7 +38,7 @@ namespace FlatEarth
        
         // Hunger
         [SerializeField] private float _hungerSpeed = 1;
-        [SerializeField] private float _starveSpeed = 2;
+        [SerializeField] private float _starveSpeed = 1;
         [SerializeField] private float _recoverSpeed = 1;
         [SerializeField] private Dictionary<Entity, float> _foodNear = new Dictionary<Entity, float>();
         
@@ -55,7 +58,6 @@ namespace FlatEarth
         {
             _id = gameObject.GetInstanceID();
             _grid = grid;
-            transform.position = _grid.GetRandomNodePos();
             _currentNode = _grid.GetNodeFromWorldPos(transform.position);
             _oldNode = _currentNode;
             
@@ -76,7 +78,7 @@ namespace FlatEarth
             // init stats
             _stats.hungerLimit = 70;
             _stats.walkSpeed = 0.02f;
-            _stats.runSpeed = 0.08f;
+            _stats.runSpeed = 0.1f;
             _stats.slowTurnSpeed = 1;
             _stats.fastTurnSpeed = 180;
             _stats.maxHealth = 100;
@@ -113,13 +115,12 @@ namespace FlatEarth
             _currentState.UpdateState("sawFood", _foodInSight != null);
             _currentState.UpdateState("isMature", _health > 90);
             
+            _oldNode = _currentNode;
             _currentNode = _grid.GetNodeFromWorldPos(transform.position);
-            
             if (_currentNode != null && _currentNode != _oldNode)
             {
                 _currentNode.AddEntity(this);
                 _oldNode.RemoveEntity(this);
-                _oldNode = _currentNode;
             }
             
             // Try to see food
@@ -163,6 +164,21 @@ namespace FlatEarth
 
         public override void Act()
         {
+            // Died of old age
+            _lifeTimeCounter += Time.deltaTime;
+            if (_lifeTimeCounter > _lifetime)
+            {
+                Die();
+            }
+
+            // Starved to death
+            if (_health <= 0)
+            {
+                Die();
+                return;
+            }
+            _health = Mathf.Min(_health, stats.maxHealth);
+            
             // Increment counters
             _hunger += Time.deltaTime * _hungerSpeed;
             
@@ -176,14 +192,6 @@ namespace FlatEarth
                 _health += Time.deltaTime * _recoverSpeed;
             }
             
-            // Starved to death
-            if (_health <= 0)
-            {
-                Die();
-            }
-            
-            _health = Mathf.Min(_health, stats.maxHealth);
-
             var scale = _health * 0.01f * Vector3.one;
             var clampedScale = Mathf.Max(scale.x, 0.3f);
             transform.localScale = new Vector3(clampedScale,clampedScale,clampedScale);
@@ -228,6 +236,16 @@ namespace FlatEarth
         {
         }
 
+        public override void TakeDamage(int damage)
+        {
+            _health -= damage;
+            if (_health <= 0)
+            {
+                Die();
+            }
+        }
+
+
         public override void Eat()
         {
             _stateSprite = _eatSprite;
@@ -250,8 +268,7 @@ namespace FlatEarth
             {
                 _isEating = true;
                 StartCoroutine(StopEating(_foodInSight.GetId()));
-                EventManager.EventMessage message = new EventManager.EventMessage(targetFood, _currentNode, EntityType.SHEEP);
-                EventManager.TriggerEvent("EntityDied", message);
+                targetFood.TakeDamage(100);
             }
             else
             {

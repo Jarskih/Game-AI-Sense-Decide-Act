@@ -38,7 +38,7 @@ namespace FlatEarth
         public abstract void Wander();
         public abstract void Breed();
         public abstract void Grow();
-
+        public abstract void TakeDamage(int damage);
         protected Action FindBestAction(CurrentState currentState)
         {
             Dictionary<Action, float> actions = new Dictionary<Action, float>();
