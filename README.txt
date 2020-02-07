@@ -7,4 +7,7 @@ Jari Hanski
 Controls:
 Use right mouse button to turn camera
 WASD to move camera
-Left click on a tile to see information about the animal on the tile (name, state)
+Left click on a tile to see information about the animal on the tile (name of the animal and current action of the animal)
+
+Settings:
+Resources/Data/ folder contains runtime editable settings for flocking
