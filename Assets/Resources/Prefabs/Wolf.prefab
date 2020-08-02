@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 1384149948140699715}
   - component: {fileID: 4614487986808470714}
   m_Layer: 0
-  m_Name: wolf
+  m_Name: Wolf
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -39,7 +39,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6356024299300882534}
-  m_Mesh: {fileID: 6329158148709259305, guid: 6503eb68684d288458119cfe7b220952, type: 3}
+  m_Mesh: {fileID: -1526140251429636614, guid: b34b6c95847a94544b9488b38f0e6520, type: 3}
 --- !u!23 &4614487986808470714
 MeshRenderer:
   m_ObjectHideFlags: 0

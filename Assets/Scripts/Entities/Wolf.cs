@@ -30,7 +30,7 @@ namespace FlatEarth
         
         private readonly EntityType type = EntityType.WOLF;
         private int _id;
-        private Grid _grid;
+        private WorldGrid _worldGrid;
 
         [SerializeField] private Node _currentNode;
         [SerializeField] private Node _oldNode;
@@ -53,11 +53,11 @@ namespace FlatEarth
 
         private WaitForSeconds _wait = new WaitForSeconds(_memoryTime);
 
-        public override void Init(Grid grid)
+        public override void Init(WorldGrid worldGrid)
         {
             _id = gameObject.GetInstanceID();
-            _grid = grid;
-            _currentNode = _grid.GetNodeFromWorldPos(transform.position);
+            _worldGrid = worldGrid;
+            _currentNode = _worldGrid.GetNodeFromWorldPos(transform.position);
             _oldNode = _currentNode;
             
             // Senses
@@ -115,7 +115,7 @@ namespace FlatEarth
             _currentState.UpdateState("isMature", _health > 90);
             
             _oldNode = _currentNode;
-            _currentNode = _grid.GetNodeFromWorldPos(transform.position);
+            _currentNode = _worldGrid.GetNodeFromWorldPos(transform.position);
             if (_currentNode != null && _currentNode != _oldNode)
             {
                 _currentNode.AddEntity(this);
@@ -209,17 +209,17 @@ namespace FlatEarth
         public override void Wander()
         {
             _stateSprite = _wanderSprite;
-            _targetPos = GetWanderPos(_grid, _stats, _wanderAngles);
+            _targetPos = GetWanderPos(_worldGrid, _stats, _wanderAngles);
             transform.position = Vector3.MoveTowards(transform.position, _targetPos, stats.walkSpeed);
         }
 
         public override void Breed()
         {
             _stateSprite = _breedSprite;
-            var neighbors = _grid.GetNeighboringNodes(_currentNode);
+            var neighbors = _worldGrid.GetNeighboringNodes(_currentNode);
             foreach (var node in neighbors)
             {
-                if (!_grid.HasEntityOnNode(node, EntityType.WOLF))
+                if (!_worldGrid.HasEntityOnNode(node, EntityType.WOLF))
                 {
                     // Found node to breed to
                     var message = new EventManager.EventMessage(this, node, EntityType.WOLF);

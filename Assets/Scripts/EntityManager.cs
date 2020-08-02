@@ -34,9 +34,9 @@ namespace FlatEarth
     private GameObject _sheepContainer;
     private GameObject _grassContainer;
     
-    private Grid _grid;
+    private WorldGrid _worldGrid;
 
-    public void Init(Grid grid, int wolf, int sheep, int grass)
+    public void Init(WorldGrid worldGrid, int wolf, int sheep, int grass)
     {
         _startingWolfs = wolf;
         _startingSheep = sheep;
@@ -46,7 +46,7 @@ namespace FlatEarth
         _numberOfSheep = Resources.Load<IntVariable>("Data/NumberOfSheep");
         _numberOfWolves = Resources.Load<IntVariable>("Data/NumberOfWolves");
 
-        _grid = grid;
+        _worldGrid = worldGrid;
         InitEntities();
     }
     
@@ -82,7 +82,7 @@ namespace FlatEarth
         }
         
         e.transform.position = targetNode.GetNodeWorldPos();
-        e.GetComponent<Entity>().Init(_grid);
+        e.GetComponent<Entity>().Init(_worldGrid);
         targetNode.AddEntity(e);
         _addedEntities.Add(e);
     }
@@ -109,7 +109,7 @@ namespace FlatEarth
             e.transform.SetParent(_wolfContainer.transform);
 
             AddEntityToList(e.GetComponent<Entity>());
-            e.GetComponent<Wolf>().Init(_grid);
+            e.GetComponent<Wolf>().Init(_worldGrid);
             _wolfIndex++;
         }
 
@@ -123,7 +123,7 @@ namespace FlatEarth
             e.transform.SetParent(_sheepContainer.transform);
 
             AddEntityToList(e.GetComponent<Entity>());
-            e.GetComponent<Sheep>().Init(_grid);
+            e.GetComponent<Sheep>().Init(_worldGrid);
             _sheepIndex++;
         }
 
@@ -136,11 +136,11 @@ namespace FlatEarth
                 
             e.transform.SetParent(_grassContainer.transform);
             e.transform.localScale = new Vector3(0.0f, 0.1f, 0.0f);
-            e.transform.position = _grid.GetRandomNodePos();
+            e.transform.position = _worldGrid.GetRandomNodePos();
 
             e.GetComponent<MeshRenderer>().material = Resources.Load<Material>(Materials.Grass);
             AddEntityToList(e.GetComponent<Entity>());
-            e.GetComponent<Grass>().Init(_grid);
+            e.GetComponent<Grass>().Init(_worldGrid);
             _grassIndex++;
         }
     }

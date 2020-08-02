@@ -1,37 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
-using Random = UnityEngine.Random;
 
 namespace FlatEarth
 {
-    [System.Serializable]
-    public class Grid
+    public class WorldGrid
     {
         // Visual representation of grid tile
-       [SerializeField] private Node[,,] _nodes;
+        private Node[,,] _nodes;
         private int _gridSizeX;
-        private int _gridSizeY;
         private int _gridSizeZ;
+        private int _gridSizeY = 1;
 
         private int _nodeSizeX = 1;
-        private int _nodeSizeY = 1;
         private int _nodeSizeZ = 1;
+        private int _nodeSizeY = 1;
         public int sizeX => _gridSizeX;
-        public int sizeY => _gridSizeY;
         public int sizeZ => _gridSizeZ;
 
         public bool Init(int pX, int pY, int pZ)
         {
             if (pX <= 0 && pY <= 0 && pZ <= 0)
             {
-                Debug.LogError("Grid size parameters has to be positive integers");
+                Debug.LogError("Grid size has to be positive numbers");
                 return false;
             }
 
             _gridSizeX = pX;
-            _gridSizeY = pY;
             _gridSizeZ = pZ;
 
             _nodes = new Node[pX,pY,pZ];
@@ -44,16 +39,14 @@ namespace FlatEarth
         private void CreateGrid()
         {
             GameObject quadContainer = new GameObject("Quads");
-            for (int y = 0; y < _gridSizeY; y++)
+            int y = 0;
+            for (int x = 0; x < _gridSizeX; x++)
             {
-                for (int x = 0; x < _gridSizeX; x++)
+                for (int z = 0; z < _gridSizeZ; z++)
                 {
-                    for (int z = 0; z < _gridSizeZ; z++)
-                    {
-                        var quad = InitGridObject(x, y, z, quadContainer.transform);
-                        Node n = new Node(x, y, z, quad);
-                        _nodes[x, y, z] = n;
-                    }
+                    var quad = InitGridObject(x, 1, z, quadContainer.transform);
+                    Node n = new Node(x, 1, z, quad);
+                    _nodes[x, y, z] = n;
                 }
             }
         }
@@ -77,9 +70,9 @@ namespace FlatEarth
 
         public Vector3 GetRandomNodePos()
         {
-            int x = Random.Range(0, _gridSizeX);
-            int y = Random.Range(0, _gridSizeY);
-            int z = Random.Range(0, _gridSizeZ);
+            int x = UnityEngine.Random.Range(0, _gridSizeX);
+            int y = UnityEngine.Random.Range(0, _gridSizeY);
+            int z = UnityEngine.Random.Range(0, _gridSizeZ);
             return GetWorldPosFromNode(new Vector3(x,y,z));
         }
         
@@ -117,7 +110,7 @@ namespace FlatEarth
         }
         public Vector3 GetWorldPosFromNode(Vector3 pos)
         {
-            return new Vector3(pos.x*_nodeSizeX, pos.y*_nodeSizeY, pos.z*_nodeSizeZ);
+            return new Vector3(pos.x*_nodeSizeX, pos.y, pos.z*_nodeSizeZ);
         }
         
         public bool IsOutsideGrid(Vector3 pos)
@@ -127,7 +120,7 @@ namespace FlatEarth
                 return true;
             }
 
-            if (pos.x > _gridSizeX * _nodeSizeX - 1 || pos.y > _gridSizeY * _nodeSizeY-1 || pos.z > _gridSizeZ * _nodeSizeZ-1)
+            if (pos.x > _gridSizeX * _nodeSizeX - 1 || pos.z > _gridSizeZ * _nodeSizeZ-1)
             {
                 return true;
             }

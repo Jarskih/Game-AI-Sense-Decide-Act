@@ -21,20 +21,20 @@ namespace FlatEarth
         [SerializeField] private bool _mature;
 
         // Grid
-        private Grid _grid;
+        private WorldGrid _worldGrid;
         [SerializeField] private Node _currentNode;
-        public override void Init(Grid grid)
+        public override void Init(WorldGrid worldGrid)
         {
             _id = gameObject.GetInstanceID();
             
-            _grid = grid;
+            _worldGrid = worldGrid;
 
             _stats.maxHealth = 100;
             _health = Random.Range(1, 100); // Random health at start
 
             _stats.breedingLimit = 90;
             
-            _currentNode = _grid.GetNodeFromWorldPos(transform.position);
+            _currentNode = _worldGrid.GetNodeFromWorldPos(transform.position);
 
             // Add actions this entity can perform and assign priorities for actions (Higher is more important)
             _availableActions.Add(new GrowAction(1));
@@ -72,7 +72,7 @@ namespace FlatEarth
                 _spreadIntervalCounter = 0;
             }
 
-            foreach (var entity in _grid.GetEntitiesOnNode(_currentNode))
+            foreach (var entity in _worldGrid.GetEntitiesOnNode(_currentNode))
             {
                 if (entity == null) continue;
                 
@@ -142,7 +142,7 @@ namespace FlatEarth
 
         public override void Breed()
         {
-            var nodes = _grid.GetNeighboringNodes(_currentNode);
+            var nodes = _worldGrid.GetNeighboringNodes(_currentNode);
             var validNodes = new List<Node>();
             foreach (var node in nodes)
             {

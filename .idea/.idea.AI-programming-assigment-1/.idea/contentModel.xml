@@ -38,8 +38,8 @@
             <e p="FlockingSettings.cs" t="Include" />
           </e>
           <e p="Grid" t="Include">
-            <e p="Grid.cs" t="Include" />
             <e p="Node.cs" t="Include" />
+            <e p="WorldGrid.cs" t="Include" />
           </e>
           <e p="Interfaces" t="Include">
             <e p="IAct.cs" t="Include" />
@@ -48,6 +48,7 @@
           </e>
           <e p="Main.cs" t="Include" />
           <e p="Materials.cs" t="Include" />
+          <e p="SelectAnimal.cs" t="Include" />
           <e p="Senses" t="Include">
             <e p="Eyesight.cs" t="Include" />
             <e p="Hearing.cs" t="Include" />
@@ -59,7 +60,6 @@
             <e p="TextSetter.cs" t="Include" />
           </e>
         </e>
-        <e p="SelectAnimal.cs" t="Include" />
         <e p="TextMesh Pro" t="Include">
           <e p="Fonts" t="Include">
             <e p="LiberationSans - OFL.txt" t="Include" />
@@ -93,7 +93,7 @@
       <e p="Packages" t="ExcludeRecursive" />
       <e p="Temp\bin" t="ExcludeRecursive" />
     </e>
-    <e p="C:\Users\Jari\.Rider2019.2\system\extResources" t="IncludeRecursive" />
-    <e p="C:\Users\Jari\.Rider2019.2\system\resharper-host\local\Transient\ReSharperHost\v192\SolutionCaches\_AI-programming-assigment-1.2072560782.00" t="ExcludeRecursive" />
+    <e p="C:\Users\Jari\AppData\local\JetBrains\Rider2020.1\extResources" t="IncludeRecursive" />
+    <e p="C:\Users\Jari\AppData\local\JetBrains\Rider2020.1\resharper-host\local\Transient\ReSharperHost\v201\SolutionCaches\_AI-programming-assigment-1.2072560782.00" t="ExcludeRecursive" />
   </component>
 </project>

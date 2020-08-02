@@ -27,7 +27,7 @@ namespace FlatEarth
         protected List<Action> _availableActions = new List<Action>();
 
         public abstract EntityType GetEntityType();
-        public abstract void Init(Grid grid);
+        public abstract void Init(WorldGrid worldGrid);
         public abstract int GetId();
         public abstract void Sense();
         public abstract void Think();
@@ -59,12 +59,12 @@ namespace FlatEarth
             return null;
         }
         
-        protected Vector3 GetWanderPos(Grid _grid, Stats stats, int[] _wanderAngles)
+        protected Vector3 GetWanderPos(WorldGrid worldGrid, Stats stats, int[] _wanderAngles)
         {
             int angle = 0;
             float maxTurningDelta = 1; // in degrees
             var nextPos = transform.position + transform.forward * 2;
-            if (_grid.IsOutsideGrid(nextPos))
+            if (worldGrid.IsOutsideGrid(nextPos))
             { 
                 // We hit the end of the grid. Turn around
                 angle = 25;

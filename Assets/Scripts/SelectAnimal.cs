@@ -11,22 +11,22 @@ namespace FlatEarth
         private Image _image;
         private Entity _selectedAnimal;
         private Camera _camera;
-        private Grid _grid;
+        private WorldGrid _worldGrid;
         private TextMeshProUGUI _textMesh;
 
-        public void Init(Grid grid)
+        public void Init(WorldGrid worldGrid)
         {
             _image = GetComponentInChildren<Image>();
             _textMesh = GetComponentInChildren<TextMeshProUGUI>();
             _camera = Camera.main;
-            _grid = grid;
+            _worldGrid = worldGrid;
     }
 
     public void UpdateUI()
     {
         if (Input.GetMouseButtonDown(0))
         {
-            Node node = FindNodeFromMousePosition(_grid);
+            Node node = FindNodeFromMousePosition(_worldGrid);
             if (node == null)
             {
                 return;
@@ -61,7 +61,7 @@ namespace FlatEarth
         }
     }
 
-    private Node FindNodeFromMousePosition(Grid grid)
+    private Node FindNodeFromMousePosition(WorldGrid worldGrid)
     {
         Node retVal = null;
 
@@ -75,7 +75,7 @@ namespace FlatEarth
 
         foreach (var t in hits)
         {
-            Node n = grid.GetNodeFromWorldPos(t.point); // go find the node for each hit
+            Node n = worldGrid.GetNodeFromWorldPos(t.point); // go find the node for each hit
 
             if (n != null)
             {

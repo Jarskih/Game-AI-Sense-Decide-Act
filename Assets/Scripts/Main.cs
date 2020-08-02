@@ -16,7 +16,7 @@ namespace FlatEarth
         private float timer;
         private float frameTime = 10f;
         
-        [SerializeField] private Grid _grid;
+        [SerializeField] private WorldGrid worldGrid;
         private EntityManager _entityManager;
         private SelectAnimal _selectAnimal;
         void Start()
@@ -24,18 +24,18 @@ namespace FlatEarth
             gameObject.AddComponent<EventManager>();
 
             // Create grid
-            _grid = new Grid();
-            if (!_grid.Init(_gridSizeX, _gridSizeY, _gridSizeZ))
+            worldGrid = new WorldGrid();
+            if (!worldGrid.Init(_gridSizeX, _gridSizeY, _gridSizeZ))
             {
                 Debug.LogError("Error creating grid");
             }
             
             // Create entities
             _entityManager = gameObject.AddComponent<EntityManager>();
-            _entityManager.Init(_grid, _startingWolfs, _startingSheep, _startingGrass);
+            _entityManager.Init(worldGrid, _startingWolfs, _startingSheep, _startingGrass);
 
             _selectAnimal = FindObjectOfType<SelectAnimal>();
-            _selectAnimal.Init(_grid);
+            _selectAnimal.Init(worldGrid);
         }
 
         // Update is called once per frame

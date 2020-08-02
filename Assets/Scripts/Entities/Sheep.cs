@@ -24,7 +24,7 @@ namespace FlatEarth
  
         private readonly EntityType type = EntityType.SHEEP;
         private int _id;
-        private Grid _grid;
+        private WorldGrid _worldGrid;
         
         private Node _currentNode;
         private Node _oldNode;
@@ -64,12 +64,12 @@ namespace FlatEarth
         private Sprite _eatSprite;
         private Sprite _wanderSprite;
 
-        public override void Init(Grid grid)
+        public override void Init(WorldGrid worldGrid)
         { 
             _id = gameObject.GetInstanceID();
-            _grid = grid;
-            transform.position = _grid.GetRandomNodePos();
-            _currentNode = _grid.GetNodeFromWorldPos(transform.position);
+            _worldGrid = worldGrid;
+            transform.position = _worldGrid.GetRandomNodePos();
+            _currentNode = _worldGrid.GetNodeFromWorldPos(transform.position);
             _oldNode = _currentNode;
             
             // Senses
@@ -133,7 +133,7 @@ namespace FlatEarth
             _currentState.UpdateState("isMature", _health > stats.breedingLimit);
 
             _oldNode = _currentNode;
-            _currentNode = _grid.GetNodeFromWorldPos(transform.position);
+            _currentNode = _worldGrid.GetNodeFromWorldPos(transform.position);
             if (_currentNode != null && _currentNode != _oldNode)
             {
                 _currentNode.AddEntity(this);
@@ -258,7 +258,7 @@ namespace FlatEarth
           var t = transform;
           _targetPos = t.position + t.forward * 2;
           
-          if (_grid.IsOutsideGrid(_targetPos))
+          if (_worldGrid.IsOutsideGrid(_targetPos))
           { 
               // We hit the end of the grid. Turn around
               var angle = 25;
@@ -280,17 +280,17 @@ namespace FlatEarth
         public override void Wander()
         {
             _stateSprite = _wanderSprite;
-            _targetPos = GetWanderPos(_grid, _stats, _wanderAngles);
+            _targetPos = GetWanderPos(_worldGrid, _stats, _wanderAngles);
             transform.position = Vector3.MoveTowards(transform.position, _targetPos, stats.walkSpeed);
         }
 
         public override void Breed()
         {
             _stateSprite = _breedSprite;
-            var neighbors = _grid.GetNeighboringNodes(_currentNode);
+            var neighbors = _worldGrid.GetNeighboringNodes(_currentNode);
             foreach (var node in neighbors)
             {
-                if (!_grid.HasEntityOnNode(node, EntityType.SHEEP))
+                if (!_worldGrid.HasEntityOnNode(node, EntityType.SHEEP))
                 {
                     // Found node to breed new sheep to
                     var message = new EventManager.EventMessage(this, node, EntityType.SHEEP);
@@ -346,7 +346,7 @@ namespace FlatEarth
 
             Entity foodOnTile = null;
 
-            var entities = _grid.GetEntitiesOnNode(_currentNode);
+            var entities = _worldGrid.GetEntitiesOnNode(_currentNode);
             foreach (var e in entities)
             {
                 if (e.GetEntityType() == EntityType.GRASS)
